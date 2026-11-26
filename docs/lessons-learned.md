@@ -56,3 +56,18 @@ thrown at startup and every request would have failed.
 Lambdas with esbuild and invoking them locally.
 
 **Takeaway:** read bundler warnings; this one was a production outage waiting to happen.
+
+## `ENOSPC` in AWS CloudShell
+
+**Symptom:** `npm ci` in CloudShell failed with `npm error code ENOSPC` ("no space left on
+device") partway through the first deploy step.
+
+**Cause:** CloudShell's home folder is a persistent 1 GB volume. A full install of this
+monorepo (Vite, CDK, test tools) plus npm's cache in `~/.npm` doesn't fit.
+
+**Fix:** clone and install in `/tmp`, which is much larger but wiped when the session ends,
+and point npm's cache there too (`npm ci --cache /tmp/npm-cache`). Fine for one-off deploy
+commands; anything to keep belongs in git.
+
+**Takeaway:** "free disk" on a cloud shell isn't one number. Know which volume persists and
+how big it is.

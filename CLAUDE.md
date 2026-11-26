@@ -1,4 +1,4 @@
-# Working on Fork Report (doughboys-app)
+# Working on Doughboys App (doughboys-app)
 
 Context for AI assistants (and humans) picking up this repo. Read `docs/ARCHITECTURE.md` first.
 This is a sibling of the owner's Puzzle Log app and deliberately uses the same stack and
@@ -37,8 +37,9 @@ conventions; when in doubt, do what Puzzle Log does.
   import (`npm run import:wiki`) and look at the counts it prints.
 - Be gentle with the wiki: batch requests (50 pages each), pause between them, and never run
   imports in tests or CI.
-- Credit the wiki (CC BY-SA) wherever its data is shown, and keep the "unofficial fan
-  project" note. Don't use the show's logos or artwork.
+- Credit the wiki (CC BY-SA) wherever its data is shown. The name "Doughboys App" must
+  always appear with "Unofficial fan app" next to it (header, page title), and the footer's
+  "not affiliated" note stays. Don't use the show's logos or artwork.
 - TypeScript is pinned to 6.0 until typescript-eslint supports 7.
 - Stateful AWS resources are `RETAIN`ed; changing a DynamoDB key schema creates a new table.
 - API code is bundled to CommonJS for Lambda: don't use `import.meta` in `apps/api/src`.

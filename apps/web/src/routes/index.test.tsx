@@ -37,3 +37,15 @@ describe('leaderboard', () => {
     ).toBeInTheDocument();
   });
 });
+
+describe('branding', () => {
+  it('says it is an unofficial fan app next to the name, and credits the wiki', async () => {
+    seedEpisodes();
+    renderApp('/');
+
+    expect(
+      await screen.findByRole('link', { name: /Doughboys App\s*Unofficial fan app/ }),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/not affiliated with Doughboys/)).toBeInTheDocument();
+  });
+});

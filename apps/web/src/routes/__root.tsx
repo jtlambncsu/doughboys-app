@@ -24,13 +24,18 @@ function Shell({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-svh flex-col">
       <header className="bg-background/90 sticky top-0 z-10 border-b backdrop-blur">
-        <div className="mx-auto flex max-w-3xl items-center gap-2 px-4 py-3">
-          <Link
-            to="/"
-            className="font-heading mr-auto flex items-center gap-2 text-lg font-semibold"
-          >
-            <Utensils className="text-primary size-5" aria-hidden />
-            Fork Report
+        <div className="mx-auto flex max-w-3xl flex-wrap items-center gap-x-2 gap-y-2 px-4 py-3">
+          <Link to="/" className="mr-auto flex items-center gap-2">
+            <Utensils className="text-primary size-5 shrink-0" aria-hidden />
+            <span className="flex flex-col leading-tight">
+              <span className="font-heading text-lg font-semibold whitespace-nowrap">
+                Doughboys App
+              </span>
+              {/* Not the show's official app: say so on every page, right by the name. */}
+              <span className="text-muted-foreground text-[11px] font-medium tracking-wide whitespace-nowrap uppercase">
+                Unofficial fan app
+              </span>
+            </span>
           </Link>
           <nav aria-label="Main" className="flex gap-1">
             <Link to="/" className={navLink} activeOptions={{ exact: true }}>
