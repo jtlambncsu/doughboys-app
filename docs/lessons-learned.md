@@ -71,3 +71,18 @@ commands; anything to keep belongs in git.
 
 **Takeaway:** "free disk" on a cloud shell isn't one number. Know which volume persists and
 how big it is.
+
+## A missing colon that failed a deploy
+
+**Symptom:** the deploy after setting the `ALLOWED_ORIGINS` GitHub variable failed with
+`Invalid format for origin https//www.doughboysapp.com` from API Gateway. CloudFormation
+rolled back, so the live API kept working.
+
+**Cause:** a typo in the variable (`https//` instead of `https://`), typed on a phone. Nothing
+checked the value before it reached AWS, so the failure came halfway through a deploy.
+
+**Fix:** `assertOrigins` in `infra/lib/config.ts` checks every origin when the CDK app starts
+and fails with a message saying exactly which value is wrong and what shape it needs.
+
+**Takeaway:** validate configuration at the edge, as early as possible, especially values a
+human types into a settings page.

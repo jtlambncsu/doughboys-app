@@ -1,6 +1,6 @@
 import { App } from 'aws-cdk-lib';
 import { ApiStack } from '../lib/api-stack.js';
-import { listSetting } from '../lib/config.js';
+import { assertOrigins, listSetting } from '../lib/config.js';
 import { GithubDeployStack } from '../lib/github-deploy-stack.js';
 
 const app = new App();
@@ -15,9 +15,9 @@ const env = {
  * it's hosted. Set the `allowedOrigins` context value or the ALLOWED_ORIGINS GitHub variable.
  * Until then any origin may call it (it's public, read-only data).
  */
-const allowedOrigins = listSetting(
-  app.node.tryGetContext('allowedOrigins'),
-  process.env.ALLOWED_ORIGINS,
+const allowedOrigins = assertOrigins(
+  listSetting(app.node.tryGetContext('allowedOrigins'), process.env.ALLOWED_ORIGINS),
+  'ALLOWED_ORIGINS',
 );
 
 new ApiStack(app, 'DoughboysApi', { env, allowedOrigins });
