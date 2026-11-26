@@ -1,0 +1,13 @@
+node_modules/
+dist/
+coverage/
+*.log
+.env
+.env.*
+!.env.example
+.DS_Store
+.vscode/*
+!.vscode/extensions.json
+cdk.out/
+# Local snapshot of wiki data made by `npm run import:wiki` (see docs/decisions/0002).
+apps/api/data/
