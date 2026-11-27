@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { assertOrigins, listSetting } from '../lib/config.js';
+import { assertOrigins, listSetting, optionalEmail, positiveInt } from '../lib/config.js';
 
 describe('listSetting', () => {
   it('splits and trims a comma-separated value', () => {
@@ -33,5 +33,17 @@ describe('assertOrigins', () => {
     'ftp://doughboysapp.com',
   ])('rejects %j with a clear message', (origin) => {
     expect(() => assertOrigins([origin], 'ALLOWED_ORIGINS')).toThrow(/isn't a valid origin/);
+  });
+});
+
+describe('optionalEmail and positiveInt', () => {
+  it('treat blanks as unset and reject typos', () => {
+    expect(optionalEmail('', 'ALERT_EMAIL')).toBeUndefined();
+    expect(optionalEmail(' me@example.com ', 'ALERT_EMAIL')).toBe('me@example.com');
+    expect(() => optionalEmail('me@example', 'ALERT_EMAIL')).toThrow(/valid email/);
+    expect(positiveInt(undefined, 'X')).toBeUndefined();
+    expect(positiveInt('25', 'X')).toBe(25);
+    expect(() => positiveInt('0', 'X')).toThrow(/positive whole number/);
+    expect(() => positiveInt('1.5', 'X')).toThrow(/positive whole number/);
   });
 });

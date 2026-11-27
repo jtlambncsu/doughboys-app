@@ -53,3 +53,6 @@ jobs:
       - run: npm run deploy:api
         env:
           ALLOWED_ORIGINS: ${{ vars.ALLOWED_ORIGINS }}
+          ALERT_EMAIL: ${{ vars.ALERT_EMAIL }}
+          MAX_SIGNUPS_PER_DAY: ${{ vars.MAX_SIGNUPS_PER_DAY }}
+          MONTHLY_BUDGET_USD: ${{ vars.MONTHLY_BUDGET_USD }}

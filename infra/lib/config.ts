@@ -36,3 +36,22 @@ export function assertOrigins(origins: string[] | undefined, name: string) {
   }
   return origins;
 }
+
+/** A blank value means "not set"; anything else must look like an email address. */
+export function optionalEmail(value: string | undefined, name: string) {
+  const email = value?.trim();
+  if (!email) return undefined;
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    throw new Error(`${name}: "${email}" isn't a valid email address.`);
+  }
+  return email;
+}
+
+/** A blank value means "use the default"; anything else must be a positive whole number. */
+export function positiveInt(value: string | undefined, name: string) {
+  if (!value?.trim()) return undefined;
+  const n = Number(value);
+  if (!Number.isInteger(n) || n <= 0)
+    throw new Error(`${name}: "${value}" isn't a positive whole number.`);
+  return n;
+}

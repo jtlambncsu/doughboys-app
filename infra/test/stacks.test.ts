@@ -173,6 +173,63 @@ describe('ApiStack', () => {
   });
 });
 
+describe('guardrails (ADR 0013)', () => {
+  const build = (props: Partial<ConstructorParameters<typeof ApiStack>[2]> = {}) =>
+    Template.fromStack(
+      new ApiStack(new App(), 'Test', { allowedOrigins: ['https://forks.example'], ...props }),
+    );
+  const withAlerts = build({ alertEmail: 'owner@example.com', maxSignupsPerDay: 50 });
+  const withoutAlerts = build();
+
+  it('caps sign-ups per day with a pre sign-up trigger', () => {
+    withAlerts.hasResourceProperties('AWS::Cognito::UserPool', {
+      LambdaConfig: { PreSignUp: Match.anyValue() },
+    });
+    withAlerts.hasResourceProperties('AWS::Lambda::Function', {
+      Environment: { Variables: Match.objectLike({ MAX_SIGNUPS_PER_DAY: '50' }) },
+    });
+    withAlerts.hasResourceProperties('AWS::DynamoDB::GlobalTable', {
+      KeySchema: [{ AttributeName: 'day', KeyType: 'HASH' }],
+      TimeToLiveSpecification: { AttributeName: 'expiresAt', Enabled: true },
+    });
+  });
+
+  it('publishes stats hourly, only into its own metric namespace', () => {
+    withAlerts.hasResourceProperties('AWS::Events::Rule', { ScheduleExpression: 'rate(1 hour)' });
+    withAlerts.hasResourceProperties('AWS::IAM::Policy', {
+      PolicyDocument: {
+        Statement: Match.arrayWith([
+          Match.objectLike({
+            Action: 'cloudwatch:PutMetricData',
+            Condition: { StringEquals: { 'cloudwatch:namespace': 'DoughboysApp' } },
+          }),
+        ]),
+      },
+    });
+    withAlerts.resourceCountIs('AWS::CloudWatch::Dashboard', 1);
+  });
+
+  it('emails alerts for sign-up spikes, the cap, API errors and spending', () => {
+    withAlerts.hasResourceProperties('AWS::SNS::Subscription', {
+      Protocol: 'email',
+      Endpoint: 'owner@example.com',
+    });
+    withAlerts.resourceCountIs('AWS::CloudWatch::Alarm', 3);
+    withAlerts.hasResourceProperties('AWS::Budgets::Budget', {
+      Budget: Match.objectLike({ BudgetLimit: { Amount: 10, Unit: 'USD' }, TimeUnit: 'MONTHLY' }),
+    });
+  });
+
+  it('creates no alerts without an email (and still caps sign-ups)', () => {
+    withoutAlerts.resourceCountIs('AWS::SNS::Topic', 0);
+    withoutAlerts.resourceCountIs('AWS::CloudWatch::Alarm', 0);
+    withoutAlerts.resourceCountIs('AWS::Budgets::Budget', 0);
+    withoutAlerts.hasResourceProperties('AWS::Cognito::UserPool', {
+      LambdaConfig: { PreSignUp: Match.anyValue() },
+    });
+  });
+});
+
 describe('GithubDeployStack', () => {
   it('only trusts main of this repo', () => {
     const template = Template.fromStack(

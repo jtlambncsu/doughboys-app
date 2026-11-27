@@ -95,6 +95,29 @@ variables, then redeploy the web app:
 
 Sign-in only redirects back to the `ALLOWED_ORIGINS` URLs and `http://localhost:5173`.
 
+### Guardrails and stats (ADR 0013)
+
+Add these GitHub variables (**Settings → Secrets and variables → Actions → Variables**), then
+re-run the deploy:
+
+| Variable              | Value                                                           |
+| --------------------- | --------------------------------------------------------------- |
+| `ALERT_EMAIL`         | Where alarms and budget alerts go. Without it, no alerts.       |
+| `MAX_SIGNUPS_PER_DAY` | Optional. Daily sign-up cap, default 50.                        |
+| `MONTHLY_BUDGET_USD`  | Optional. Monthly budget for the whole AWS account, default 10. |
+
+After the deploy, AWS emails `ALERT_EMAIL` a **subscription confirmation**: click the link,
+or alarm emails won't arrive. Budget emails need no confirmation.
+
+**Where to look:**
+
+- **Dashboard:** the `DashboardUrl` stack output, or CloudWatch → Dashboards →
+  `DoughboysApi-Fans`. Totals update hourly.
+- **Every account:** Cognito → User pools → the `DoughboysApi` pool → Users.
+- **Quick count in CloudShell:**
+  `aws cognito-idp describe-user-pool --user-pool-id POOL_ID --query UserPool.EstimatedNumberOfUsers`
+- **Spending:** Billing → Budgets, or Cost Explorer.
+
 ### Moderating reviews
 
 There's no admin screen yet. To remove a review, find its owner and delete it in CloudShell

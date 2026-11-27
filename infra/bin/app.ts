@@ -1,6 +1,6 @@
 import { App } from 'aws-cdk-lib';
 import { ApiStack } from '../lib/api-stack.js';
-import { assertOrigins, listSetting } from '../lib/config.js';
+import { assertOrigins, listSetting, optionalEmail, positiveInt } from '../lib/config.js';
 import { GithubDeployStack } from '../lib/github-deploy-stack.js';
 
 const app = new App();
@@ -20,7 +20,18 @@ const allowedOrigins = assertOrigins(
   'ALLOWED_ORIGINS',
 );
 
-new ApiStack(app, 'DoughboysApi', { env, allowedOrigins, webUrls: allowedOrigins });
+/**
+ * Guardrails (ADR 0013), from GitHub variables in CI: where alerts go (ALERT_EMAIL; kept out
+ * of the code), the daily sign-up cap and the monthly budget.
+ */
+new ApiStack(app, 'DoughboysApi', {
+  env,
+  allowedOrigins,
+  webUrls: allowedOrigins,
+  alertEmail: optionalEmail(process.env.ALERT_EMAIL, 'ALERT_EMAIL'),
+  maxSignupsPerDay: positiveInt(process.env.MAX_SIGNUPS_PER_DAY, 'MAX_SIGNUPS_PER_DAY'),
+  monthlyBudgetUsd: positiveInt(process.env.MONTHLY_BUDGET_USD, 'MONTHLY_BUDGET_USD'),
+});
 
 /**
  * One-time setup, deployed from your machine: lets GitHub Actions deploy DoughboysApi.

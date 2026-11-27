@@ -30,6 +30,8 @@ conventions; when in doubt, do what Puzzle Log does.
   fallback (`ChainLogo`).
 - Fans: Cognito managed login (passwords + passkeys, ADR 0009) with `react-oidc-context`;
   ratings and profiles in DynamoDB (ADR 0010), routes in `apps/api/src/routes/fans.ts`.
+- Guardrails (ADR 0013): daily sign-up cap (Cognito pre sign-up trigger), hourly stats,
+  CloudWatch dashboard, email alarms and an AWS Budget (`infra/lib/ops.ts`, `apps/api/src/ops`).
 - Ideas for later are in `docs/ROADMAP.md`.
 - Shared: Zod schemas and pure logic in `packages/shared` (consumed as TypeScript source).
 - Infra: AWS CDK in `infra/`, deployed by GitHub Actions on pushes to `main` using OIDC.
