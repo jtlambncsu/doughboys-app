@@ -61,3 +61,14 @@ describe('episode page', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('Not found');
   });
 });
+
+describe('episode to chain', () => {
+  it('links the restaurant to its chain page', async () => {
+    seedEpisodes();
+    renderApp(`/episodes/${encodeURIComponent('IHOP with Alison Agosti')}`);
+
+    await userEvent.click(await screen.findByRole('link', { name: 'IHOP' }));
+
+    expect(await screen.findByRole('heading', { name: 'IHOP', level: 1 })).toBeInTheDocument();
+  });
+});

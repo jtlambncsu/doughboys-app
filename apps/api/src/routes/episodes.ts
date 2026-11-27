@@ -1,5 +1,10 @@
 import { Router } from 'express';
-import { chainLeaderboard, type ChainInfo, type EpisodeSummary } from '@doughboys-app/shared';
+import {
+  chainLeaderboard,
+  type ChainDetail,
+  type ChainInfo,
+  type EpisodeSummary,
+} from '@doughboys-app/shared';
 import { withOverrides } from '../chains/overrides.js';
 import type { ChainStore } from '../chains/types.js';
 import type { EpisodeStore } from '../stores/types.js';
@@ -50,6 +55,35 @@ export function episodesRouter(
   router.get('/chains', async (_req, res) => {
     const [episodes, info] = await Promise.all([list(), chainInfo()]);
     res.json(chainLeaderboard(episodes, info));
+  });
+
+  // One chain with every episode that featured it, for its page.
+  router.get('/chains/:name', async (req, res) => {
+    const [episodes, info] = await Promise.all([list(), chainInfo()]);
+    const name = req.params.name;
+    const slugs = episodes.filter((e) => e.restaurant === name).map((e) => e.slug);
+    if (slugs.length === 0) {
+      res.status(404).json({ error: 'Chain not found' });
+      return;
+    }
+    const full = (await store.getEpisodes(slugs)).sort((a, b) =>
+      (a.releaseDate ?? '').localeCompare(b.releaseDate ?? ''),
+    );
+    const known = info.get(name);
+    const rated = full.filter((e) => e.averageForks !== undefined);
+    const detail: ChainDetail = {
+      name,
+      ...(known && { category: known.category }),
+      ...(known?.domain && { domain: known.domain }),
+      // Same figure as the leaderboard's.
+      ...(rated.length && {
+        averageForks: chainLeaderboard(rated, info).find((c) => c.name === name)!.averageForks,
+      }),
+      visits: full.length,
+      ratedVisits: rated.length,
+      episodes: full,
+    };
+    res.json(detail);
   });
 
   return router;

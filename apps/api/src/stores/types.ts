@@ -7,6 +7,8 @@ export interface EpisodeStore {
   /** Every episode, newest first, without the per-person orders. */
   listEpisodes(): Promise<EpisodeSummary[]>;
   getEpisode(slug: string): Promise<Episode | undefined>;
+  /** Several episodes at once, in any order; unknown slugs are skipped. */
+  getEpisodes(slugs: string[]): Promise<Episode[]>;
 }
 
 export function toSummary({ ratings: _ratings, ...summary }: Episode): EpisodeSummary {

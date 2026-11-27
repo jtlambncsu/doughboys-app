@@ -151,8 +151,8 @@ function VisitsBadge({ visits, emphasized }: { visits: number; emphasized?: bool
 function PodiumCard({ chain, sort }: { chain: RankedChain; sort: string }) {
   return (
     <Link
-      to="/episodes/$slug"
-      params={{ slug: chain.latestEpisode }}
+      to="/chains/$name"
+      params={{ name: chain.name }}
       className="bg-card hover:bg-accent relative flex h-full flex-col items-center gap-1.5 rounded-xl border px-2 pt-4 pb-3 text-center transition-colors"
     >
       <span className="absolute top-1.5 left-2 text-lg" aria-label={`Rank ${chain.rank}`}>
@@ -172,8 +172,8 @@ function PodiumCard({ chain, sort }: { chain: RankedChain; sort: string }) {
 function ChainRow({ chain, sort }: { chain: RankedChain; sort: string }) {
   return (
     <Link
-      to="/episodes/$slug"
-      params={{ slug: chain.latestEpisode }}
+      to="/chains/$name"
+      params={{ name: chain.name }}
       className="hover:bg-accent flex items-center gap-3 px-3 py-2.5"
     >
       <span className="text-muted-foreground w-7 text-right text-sm tabular-nums">

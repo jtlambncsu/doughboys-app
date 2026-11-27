@@ -1,4 +1,4 @@
-import type { Chain, Episode, EpisodeSummary } from '@doughboys-app/shared';
+import type { Chain, ChainDetail, Episode, EpisodeSummary } from '@doughboys-app/shared';
 
 /**
  * Empty in development, so requests go to `/api` on the Vite server, which proxies to the
@@ -31,6 +31,7 @@ export function createDoughboysApi() {
     episodes: () => get<EpisodeSummary[]>('/episodes'),
     episode: (slug: string) => get<Episode>(`/episodes/${encodeURIComponent(slug)}`),
     chains: () => get<Chain[]>('/chains'),
+    chain: (name: string) => get<ChainDetail>(`/chains/${encodeURIComponent(name)}`),
   };
 }
 

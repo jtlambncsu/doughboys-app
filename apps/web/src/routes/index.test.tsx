@@ -94,15 +94,13 @@ describe('leaderboard', () => {
     expect(within(podium).getByText('ZC')).toBeInTheDocument();
   });
 
-  it('opens the latest episode for a chain', async () => {
+  it('opens the chain’s page', async () => {
     seedEpisodes();
     renderApp('/');
 
     await userEvent.click(await screen.findByRole('link', { name: /IHOP/ }));
 
-    expect(
-      await screen.findByRole('heading', { name: 'IHOP with Alison Agosti' }),
-    ).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'IHOP', level: 1 })).toBeInTheDocument();
   });
 });
 

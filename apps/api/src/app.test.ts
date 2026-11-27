@@ -72,4 +72,23 @@ describe('API', () => {
     });
     expect(res.body[1]).not.toHaveProperty('category'); // not classified yet
   });
+
+  it('returns one chain with all its episodes, oldest first', async () => {
+    const res = await request(app)
+      .get(`/api/chains/${encodeURIComponent('Taco Bell')}`)
+      .expect(200);
+    expect(res.body).toMatchObject({
+      name: 'Taco Bell',
+      category: 'restaurant',
+      domain: 'tacobell.com',
+      averageForks: 4,
+      visits: 1,
+      ratedVisits: 1,
+    });
+    expect(res.body.episodes.map((e: Episode) => e.slug)).toEqual(['Taco Bell with Jack Allison']);
+  });
+
+  it('404s for an unknown chain', async () => {
+    await request(app).get('/api/chains/Nope').expect(404);
+  });
 });

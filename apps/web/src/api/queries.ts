@@ -14,6 +14,9 @@ export const episodeQueryOptions = (api: DoughboysApi, slug: string) =>
 export const chainsQueryOptions = (api: DoughboysApi) =>
   queryOptions({ queryKey: ['chains'], queryFn: api.chains });
 
+export const chainQueryOptions = (api: DoughboysApi, name: string) =>
+  queryOptions({ queryKey: ['chains', 'detail', name], queryFn: () => api.chain(name) });
+
 export function createQueryClient() {
   return new QueryClient({
     // The data changes about once a week, so there's no need to refetch on every visit.

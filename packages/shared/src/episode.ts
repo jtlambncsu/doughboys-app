@@ -77,6 +77,19 @@ export const chainSchema = z.object({
 });
 export type Chain = z.infer<typeof chainSchema>;
 
+/** A chain's page: its summary plus every episode that featured it, oldest first. */
+export const chainDetailSchema = z.object({
+  name: z.string(),
+  category: chainCategorySchema.optional(),
+  domain: z.string().optional(),
+  /** Missing when no visit has a score. */
+  averageForks: z.number().optional(),
+  visits: z.number(),
+  ratedVisits: z.number(),
+  episodes: z.array(episodeSchema),
+});
+export type ChainDetail = z.infer<typeof chainDetailSchema>;
+
 export function seriesFor(number: string | undefined): Series {
   if (number && /^\d+$/.test(number)) return 'main';
   if (number?.toUpperCase() === 'DD') return 'double';

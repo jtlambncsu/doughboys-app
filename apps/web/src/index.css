@@ -7,6 +7,7 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
+  --color-chart-score: var(--chart-score);
   --font-heading: 'Fraunces Variable', Georgia, serif;
   --font-sans: 'Geist Variable', sans-serif;
   --color-sidebar-ring: var(--sidebar-ring);
@@ -75,6 +76,8 @@
   --chart-4: oklch(0.371 0 0);
   --chart-5: oklch(0.269 0 0);
   --radius: 0.625rem;
+  /* Score-over-time line: validated for contrast on the card (dataviz skill). */
+  --chart-score: oklch(0.55 0.17 40);
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
   --sidebar-primary: oklch(0.205 0 0);
@@ -117,6 +120,7 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
+  --chart-score: oklch(0.68 0.15 55);
 }
 
 @layer base {

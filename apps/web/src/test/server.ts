@@ -40,6 +40,24 @@ export const handlers = [
     return episode ? HttpResponse.json(episode) : HttpResponse.json({}, { status: 404 });
   }),
   http.get('/api/chains', () => HttpResponse.json(chainLeaderboard(db.summaries(), db.chains))),
+  http.get('/api/chains/:name', ({ params }) => {
+    const name = params.name as string;
+    const episodes = [...db.episodes.values()]
+      .filter((e) => e.restaurant === name)
+      .sort((a, b) => (a.releaseDate ?? '').localeCompare(b.releaseDate ?? ''));
+    if (episodes.length === 0) return HttpResponse.json({}, { status: 404 });
+    const row = chainLeaderboard(db.summaries(), db.chains).find((c) => c.name === name);
+    const known = db.chains.get(name);
+    return HttpResponse.json({
+      name,
+      ...(known && { category: known.category }),
+      ...(known?.domain && { domain: known.domain }),
+      ...(row && { averageForks: row.averageForks }),
+      visits: episodes.length,
+      ratedVisits: episodes.filter((e) => e.averageForks !== undefined).length,
+      episodes,
+    });
+  }),
 ];
 
 export const server = setupServer(...handlers);

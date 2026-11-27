@@ -1,4 +1,5 @@
 import {
+  BatchGetCommand,
   DynamoDBDocumentClient,
   BatchWriteCommand,
   GetCommand,
@@ -61,5 +62,20 @@ describe('DynamoEpisodeStore', () => {
       .on(GetCommand, { TableName: 'Episodes', Key: { slug: 'a' } })
       .resolves({ Item: episode('a', '2020-01-01') });
     expect(await store.getEpisode('a')).toMatchObject({ slug: 'a' });
+  });
+
+  it('reads several episodes at once and retries unprocessed keys', async () => {
+    ddb
+      .on(BatchGetCommand)
+      .resolvesOnce({
+        Responses: { Episodes: [episode('a', '2020-01-01')] },
+        UnprocessedKeys: { Episodes: { Keys: [{ slug: 'b' }] } },
+      })
+      .resolves({ Responses: { Episodes: [episode('b', '2021-01-01')] } });
+
+    const result = await store.getEpisodes(['a', 'b']);
+
+    expect(result.map((e) => e.slug)).toEqual(['a', 'b']);
+    expect(ddb.commandCalls(BatchGetCommand)).toHaveLength(2);
   });
 });

@@ -33,7 +33,15 @@ function EpisodePage() {
           )}
         </div>
         <h1 className="font-heading text-2xl font-semibold">{episode.title}</h1>
-        {episode.restaurant && <p className="text-lg">{episode.restaurant}</p>}
+        {episode.restaurant && (
+          <Link
+            to="/chains/$name"
+            params={{ name: episode.restaurant }}
+            className="text-primary text-lg underline-offset-4 hover:underline"
+          >
+            {episode.restaurant}
+          </Link>
+        )}
         {episode.guests.length > 0 && (
           <p className="text-muted-foreground text-sm">With {episode.guests.join(', ')}</p>
         )}
