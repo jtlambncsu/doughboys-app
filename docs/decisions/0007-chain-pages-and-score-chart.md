@@ -10,7 +10,7 @@ leaderboard linked only to the latest episode, hiding how opinions changed over 
 
 ## Decision
 
-- A page per chain at `/chains/<name>`, fed by `GET /api/chains/:name`, which returns the
+- A page per chain at `/chains/<slug>`, fed by `GET /api/chains/:slug`, which returns the
   chain's summary and every episode that featured it (one DynamoDB `BatchGet`).
 - The leaderboard and each episode's restaurant name link there.
 - Rated visits are listed newest first, numbered, with the change since the previous visit
@@ -31,7 +31,9 @@ leaderboard linked only to the latest episode, hiding how opinions changed over 
 ## Consequences
 
 - Recharts adds to the web bundle; it's only loaded on chain pages (route code splitting).
-- Chain names are URL path segments, so they're always encoded (`Which Wich?`).
+- Chains are addressed by a slug (`/chains/which-wich`), not their name: API Gateway decodes
+  `%3F` back to `?` before the app sees it. The slug also merges spelling variants
+  ("Papa Johns" / "Papa John's"). See lessons learned.
 
 ## Explaining it in an interview
 

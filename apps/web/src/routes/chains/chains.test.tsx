@@ -1,6 +1,7 @@
 import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
+import { chainSlug } from '@doughboys-app/shared';
 import { db } from '@/test/server';
 import { renderApp } from '@/test/renderApp';
 
@@ -39,7 +40,7 @@ function seedTacoBell() {
   });
 }
 
-const chainUrl = (name: string) => `/chains/${encodeURIComponent(name)}`;
+const chainUrl = (name: string) => `/chains/${chainSlug(name)}`;
 
 describe('chain page', () => {
   it('lists every rated visit, newest first, with the change from the visit before', async () => {

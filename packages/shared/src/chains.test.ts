@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { chainLeaderboard, chainsInEpisodes } from './chains.js';
+import { chainLeaderboard, chainSlug, chainsInEpisodes } from './chains.js';
 import type { ChainInfo, EpisodeSummary } from './episode.js';
 
 const episode = (overrides: Partial<EpisodeSummary>): EpisodeSummary => ({
@@ -23,9 +23,16 @@ describe('chainLeaderboard', () => {
       episode({ slug: 'none', averageForks: 5 }), // no restaurant: left out
     ]);
     expect(board).toEqual([
-      { name: 'Platinum', averageForks: 5.5, visits: 1, ratedVisits: 1, latestEpisode: 'p' },
-      { name: 'B', averageForks: 4.5, visits: 1, ratedVisits: 1, latestEpisode: 'b' },
-      { name: 'A', averageForks: 2.5, visits: 3, ratedVisits: 2, latestEpisode: 'a3' },
+      {
+        slug: 'platinum',
+        name: 'Platinum',
+        averageForks: 5.5,
+        visits: 1,
+        ratedVisits: 1,
+        latestEpisode: 'p',
+      },
+      { slug: 'b', name: 'B', averageForks: 4.5, visits: 1, ratedVisits: 1, latestEpisode: 'b' },
+      { slug: 'a', name: 'A', averageForks: 2.5, visits: 3, ratedVisits: 2, latestEpisode: 'a3' },
     ]);
   });
 
@@ -44,6 +51,42 @@ describe('chainLeaderboard', () => {
     expect(board[0]).toMatchObject({ category: 'restaurant', domain: 'tacobell.com' });
     expect(board[1]).toMatchObject({ category: 'produce' });
     expect(board[1]).not.toHaveProperty('domain');
+  });
+});
+
+describe('chainSlug', () => {
+  it.each([
+    ['Which Wich?', 'which-wich'],
+    ['A&W Canada', 'a-and-w-canada'],
+    ["McDonald's", 'mcdonalds'],
+    ['Sweetfin Poké', 'sweetfin-poke'],
+    ['7-Eleven', '7-eleven'],
+    ['Papa Johns', 'papa-johns'],
+    ["Papa John's", 'papa-johns'],
+  ])('%j → %j', (name, slug) => {
+    expect(chainSlug(name)).toBe(slug);
+  });
+
+  it('merges spelling variants into one chain, named by the most common spelling', () => {
+    const board = chainLeaderboard(
+      [
+        episode({ slug: '1', restaurant: "Papa John's", averageForks: 3 }),
+        episode({ slug: '2', restaurant: "Papa John's", averageForks: 4 }),
+        episode({ slug: '3', restaurant: 'Papa Johns', averageForks: 2 }),
+      ],
+      new Map([
+        ['Papa Johns', { name: 'Papa Johns', category: 'restaurant', domain: 'papajohns.com' }],
+      ]),
+    );
+    expect(board).toEqual([
+      expect.objectContaining({
+        slug: 'papa-johns',
+        name: "Papa John's",
+        visits: 3,
+        averageForks: 3,
+        domain: 'papajohns.com',
+      }),
+    ]);
   });
 });
 

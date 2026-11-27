@@ -74,10 +74,9 @@ describe('API', () => {
   });
 
   it('returns one chain with all its episodes, oldest first', async () => {
-    const res = await request(app)
-      .get(`/api/chains/${encodeURIComponent('Taco Bell')}`)
-      .expect(200);
+    const res = await request(app).get('/api/chains/taco-bell').expect(200);
     expect(res.body).toMatchObject({
+      slug: 'taco-bell',
       name: 'Taco Bell',
       category: 'restaurant',
       domain: 'tacobell.com',
@@ -89,6 +88,10 @@ describe('API', () => {
   });
 
   it('404s for an unknown chain', async () => {
-    await request(app).get('/api/chains/Nope').expect(404);
+    await request(app).get('/api/chains/nope').expect(404);
+    // Chains are looked up by slug, not name.
+    await request(app)
+      .get(`/api/chains/${encodeURIComponent('Taco Bell')}`)
+      .expect(404);
   });
 });

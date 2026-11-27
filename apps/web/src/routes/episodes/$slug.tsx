@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { useSuspenseQuery } from '@tanstack/react-query';
 import { ArrowLeft, ExternalLink } from 'lucide-react';
+import { chainSlug } from '@doughboys-app/shared';
 import { episodeQueryOptions } from '@/api/queries';
 import { ForkScore } from '@/components/ForkScore';
 import { ListSkeleton } from '@/components/ListSkeleton';
@@ -35,8 +36,8 @@ function EpisodePage() {
         <h1 className="font-heading text-2xl font-semibold">{episode.title}</h1>
         {episode.restaurant && (
           <Link
-            to="/chains/$name"
-            params={{ name: episode.restaurant }}
+            to="/chains/$slug"
+            params={{ slug: chainSlug(episode.restaurant) }}
             className="text-primary text-lg underline-offset-4 hover:underline"
           >
             {episode.restaurant}

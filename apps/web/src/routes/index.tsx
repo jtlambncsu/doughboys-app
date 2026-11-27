@@ -114,7 +114,7 @@ function Leaderboard() {
       {podium.length > 0 && (
         <ol aria-label="Top three" className="grid grid-cols-3 gap-2">
           {podium.map((chain) => (
-            <li key={chain.name}>
+            <li key={chain.slug}>
               <PodiumCard chain={chain} sort={sort} />
             </li>
           ))}
@@ -124,7 +124,7 @@ function Leaderboard() {
       {rest.length > 0 && (
         <ol className="divide-y rounded-xl border" aria-label="Chains">
           {rest.map((chain) => (
-            <li key={chain.name}>
+            <li key={chain.slug}>
               <ChainRow chain={chain} sort={sort} />
             </li>
           ))}
@@ -151,8 +151,8 @@ function VisitsBadge({ visits, emphasized }: { visits: number; emphasized?: bool
 function PodiumCard({ chain, sort }: { chain: RankedChain; sort: string }) {
   return (
     <Link
-      to="/chains/$name"
-      params={{ name: chain.name }}
+      to="/chains/$slug"
+      params={{ slug: chain.slug }}
       className="bg-card hover:bg-accent relative flex h-full flex-col items-center gap-1.5 rounded-xl border px-2 pt-4 pb-3 text-center transition-colors"
     >
       <span className="absolute top-1.5 left-2 text-lg" aria-label={`Rank ${chain.rank}`}>
@@ -172,8 +172,8 @@ function PodiumCard({ chain, sort }: { chain: RankedChain; sort: string }) {
 function ChainRow({ chain, sort }: { chain: RankedChain; sort: string }) {
   return (
     <Link
-      to="/chains/$name"
-      params={{ name: chain.name }}
+      to="/chains/$slug"
+      params={{ slug: chain.slug }}
       className="hover:bg-accent flex items-center gap-3 px-3 py-2.5"
     >
       <span className="text-muted-foreground w-7 text-right text-sm tabular-nums">

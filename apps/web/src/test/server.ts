@@ -1,6 +1,13 @@
 import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
-import { chainLeaderboard, type ChainInfo, type Episode } from '@doughboys-app/shared';
+import {
+  chainLeaderboard,
+  chainRow,
+  displayName,
+  episodesByChain,
+  type ChainInfo,
+  type Episode,
+} from '@doughboys-app/shared';
 
 /**
  * A tiny in-memory fake of our API. Tests talk to it through real `fetch` calls, which MSW
@@ -40,21 +47,26 @@ export const handlers = [
     return episode ? HttpResponse.json(episode) : HttpResponse.json({}, { status: 404 });
   }),
   http.get('/api/chains', () => HttpResponse.json(chainLeaderboard(db.summaries(), db.chains))),
-  http.get('/api/chains/:name', ({ params }) => {
-    const name = params.name as string;
-    const episodes = [...db.episodes.values()]
-      .filter((e) => e.restaurant === name)
-      .sort((a, b) => (a.releaseDate ?? '').localeCompare(b.releaseDate ?? ''));
-    if (episodes.length === 0) return HttpResponse.json({}, { status: 404 });
-    const row = chainLeaderboard(db.summaries(), db.chains).find((c) => c.name === name);
-    const known = db.chains.get(name);
+  http.get('/api/chains/:slug', ({ params }) => {
+    const slug = params.slug as string;
+    const visits = episodesByChain([...db.episodes.values()]).get(slug);
+    if (!visits) return HttpResponse.json({}, { status: 404 });
+    const episodes = visits.sort((a, b) =>
+      (a.releaseDate ?? '').localeCompare(b.releaseDate ?? ''),
+    );
+    const row = chainRow(
+      slug,
+      db.summaries().filter((e) => visits.some((v) => v.slug === e.slug)),
+      db.chains,
+    );
     return HttpResponse.json({
-      name,
-      ...(known && { category: known.category }),
-      ...(known?.domain && { domain: known.domain }),
+      slug,
+      name: displayName(visits),
+      ...(row?.category && { category: row.category }),
+      ...(row?.domain && { domain: row.domain }),
       ...(row && { averageForks: row.averageForks }),
       visits: episodes.length,
-      ratedVisits: episodes.filter((e) => e.averageForks !== undefined).length,
+      ratedVisits: row?.ratedVisits ?? 0,
       episodes,
     });
   }),

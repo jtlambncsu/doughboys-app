@@ -14,8 +14,8 @@ export const episodeQueryOptions = (api: DoughboysApi, slug: string) =>
 export const chainsQueryOptions = (api: DoughboysApi) =>
   queryOptions({ queryKey: ['chains'], queryFn: api.chains });
 
-export const chainQueryOptions = (api: DoughboysApi, name: string) =>
-  queryOptions({ queryKey: ['chains', 'detail', name], queryFn: () => api.chain(name) });
+export const chainQueryOptions = (api: DoughboysApi, slug: string) =>
+  queryOptions({ queryKey: ['chains', 'detail', slug], queryFn: () => api.chain(slug) });
 
 export function createQueryClient() {
   return new QueryClient({

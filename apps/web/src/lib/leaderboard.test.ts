@@ -8,6 +8,7 @@ const chain = (
   visits: number,
   category?: Chain['category'],
 ): Chain => ({
+  slug: name.toLowerCase(),
   name,
   averageForks,
   visits,

@@ -1,6 +1,9 @@
 import { Router } from 'express';
 import {
   chainLeaderboard,
+  chainRow,
+  displayName,
+  episodesByChain,
   type ChainDetail,
   type ChainInfo,
   type EpisodeSummary,
@@ -57,30 +60,28 @@ export function episodesRouter(
     res.json(chainLeaderboard(episodes, info));
   });
 
-  // One chain with every episode that featured it, for its page.
-  router.get('/chains/:name', async (req, res) => {
+  // One chain (by slug) with every episode that featured it, for its page.
+  router.get('/chains/:slug', async (req, res) => {
     const [episodes, info] = await Promise.all([list(), chainInfo()]);
-    const name = req.params.name;
-    const slugs = episodes.filter((e) => e.restaurant === name).map((e) => e.slug);
-    if (slugs.length === 0) {
+    const slug = req.params.slug;
+    const visits = episodesByChain(episodes).get(slug);
+    if (!visits) {
       res.status(404).json({ error: 'Chain not found' });
       return;
     }
-    const full = (await store.getEpisodes(slugs)).sort((a, b) =>
+    const full = (await store.getEpisodes(visits.map((v) => v.slug))).sort((a, b) =>
       (a.releaseDate ?? '').localeCompare(b.releaseDate ?? ''),
     );
-    const known = info.get(name);
-    const rated = full.filter((e) => e.averageForks !== undefined);
+    const row = chainRow(slug, visits, info); // same figures as the leaderboard
+    const name = displayName(visits);
     const detail: ChainDetail = {
+      slug,
       name,
-      ...(known && { category: known.category }),
-      ...(known?.domain && { domain: known.domain }),
-      // Same figure as the leaderboard's.
-      ...(rated.length && {
-        averageForks: chainLeaderboard(rated, info).find((c) => c.name === name)!.averageForks,
-      }),
+      ...(row?.category && { category: row.category }),
+      ...(row?.domain && { domain: row.domain }),
+      ...(row && { averageForks: row.averageForks }),
       visits: full.length,
-      ratedVisits: rated.length,
+      ratedVisits: row?.ratedVisits ?? 0,
       episodes: full,
     };
     res.json(detail);

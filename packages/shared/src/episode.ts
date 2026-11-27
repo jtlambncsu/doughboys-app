@@ -64,6 +64,8 @@ export const chainInfoSchema = z.object({
 export type ChainInfo = z.infer<typeof chainInfoSchema>;
 
 export const chainSchema = z.object({
+  /** URL-safe id, shared by spelling variants of the same name (see `chainSlug`). */
+  slug: z.string(),
   name: z.string(),
   averageForks: z.number(),
   /** Every episode that reviewed it, rated or not. */
@@ -79,6 +81,7 @@ export type Chain = z.infer<typeof chainSchema>;
 
 /** A chain's page: its summary plus every episode that featured it, oldest first. */
 export const chainDetailSchema = z.object({
+  slug: z.string(),
   name: z.string(),
   category: chainCategorySchema.optional(),
   domain: z.string().optional(),

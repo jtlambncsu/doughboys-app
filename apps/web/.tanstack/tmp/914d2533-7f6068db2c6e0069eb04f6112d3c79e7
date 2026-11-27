@@ -13,7 +13,7 @@ import { episodeLabel, formatDate } from '@/lib/format';
 import { visitsLabel } from '@/lib/leaderboard';
 import { cn } from '@/lib/utils';
 
-export const Route = createFileRoute('/chains/$name')({
+export const Route = createFileRoute('/chains/$slug')({
   loader: ({ context, params }) =>
     context.queryClient.ensureQueryData(chainQueryOptions(context.api, params.name)),
   pendingComponent: ListSkeleton,

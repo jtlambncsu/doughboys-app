@@ -101,3 +101,21 @@ are plain text. The next import sees "Sweetfin Poké" as a new chain and classif
 
 **Takeaway:** a strict equality check across a system boundary needs both sides
 normalized, and "silently dropped" deserves a log line.
+
+## "Which Wich?" had no page
+
+**Symptom:** after chain pages shipped, every chain page loaded on the live site except
+"Which Wich?", which said "Chain not found". The tests, including one for that exact name,
+passed.
+
+**Cause:** the page's URL held the chain's name, encoded: `/api/chains/Which%20Wich%3F`.
+Express decodes `%3F` correctly, so tests passed. But in AWS, API Gateway decodes the path
+before handing it to Lambda, so Express saw `/api/chains/Which Wich?`, read the `?` as the
+start of a query string, and looked up "Which Wich".
+
+**Fix:** chains now have URL-safe slugs (`which-wich`, `a-and-w-canada`). As a bonus, the
+slug merges spelling variants on the wiki: "Papa Johns" and "Papa John's" were two
+leaderboard rows and are now one chain with four visits.
+
+**Takeaway:** keep user-facing text out of URL paths, and test against the real gateway:
+local tests can't see what the proxy in front of the app does to a request.

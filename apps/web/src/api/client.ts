@@ -31,7 +31,7 @@ export function createDoughboysApi() {
     episodes: () => get<EpisodeSummary[]>('/episodes'),
     episode: (slug: string) => get<Episode>(`/episodes/${encodeURIComponent(slug)}`),
     chains: () => get<Chain[]>('/chains'),
-    chain: (name: string) => get<ChainDetail>(`/chains/${encodeURIComponent(name)}`),
+    chain: (slug: string) => get<ChainDetail>(`/chains/${encodeURIComponent(slug)}`),
   };
 }
 
