@@ -1,6 +1,6 @@
 import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
-import { chainLeaderboard, type Episode } from '@doughboys-app/shared';
+import { chainLeaderboard, type ChainInfo, type Episode } from '@doughboys-app/shared';
 
 /**
  * A tiny in-memory fake of our API. Tests talk to it through real `fetch` calls, which MSW
@@ -8,8 +8,11 @@ import { chainLeaderboard, type Episode } from '@doughboys-app/shared';
  */
 export const db = {
   episodes: new Map<string, Episode>(),
+  /** Classified chains, by name. */
+  chains: new Map<string, ChainInfo>(),
   reset() {
     this.episodes.clear();
+    this.chains.clear();
   },
   add(episode: Partial<Episode> & { slug: string }) {
     const full: Episode = {
@@ -36,7 +39,7 @@ export const handlers = [
     const episode = db.episodes.get(params.slug as string);
     return episode ? HttpResponse.json(episode) : HttpResponse.json({}, { status: 404 });
   }),
-  http.get('/api/chains', () => HttpResponse.json(chainLeaderboard(db.summaries()))),
+  http.get('/api/chains', () => HttpResponse.json(chainLeaderboard(db.summaries(), db.chains))),
 ];
 
 export const server = setupServer(...handlers);

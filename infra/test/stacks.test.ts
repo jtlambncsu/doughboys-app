@@ -16,6 +16,35 @@ describe('ApiStack', () => {
     });
   });
 
+  it('keeps classified chains in their own table', () => {
+    template.hasResource('AWS::DynamoDB::GlobalTable', {
+      Properties: Match.objectLike({ KeySchema: [{ AttributeName: 'name', KeyType: 'HASH' }] }),
+      DeletionPolicy: 'Retain',
+    });
+  });
+
+  it('gives only the import job the Anthropic key', () => {
+    const importPolicies = JSON.stringify(
+      template.findResources('AWS::IAM::Policy', {
+        Properties: { Roles: [{ Ref: Match.stringLikeRegexp('ImportFunction') }] },
+      }),
+    );
+    const apiPolicies = JSON.stringify(
+      template.findResources('AWS::IAM::Policy', {
+        Properties: { Roles: [{ Ref: Match.stringLikeRegexp('ApiFunction') }] },
+      }),
+    );
+    expect(importPolicies).toContain('ssm:GetParameter');
+    expect(apiPolicies).not.toContain('ssm:');
+    template.hasResourceProperties('AWS::Lambda::Function', {
+      Environment: {
+        Variables: Match.objectLike({
+          ANTHROPIC_KEY_PARAMETER: '/doughboys-app/anthropic-api-key',
+        }),
+      },
+    });
+  });
+
   it('allows GET from the web app in CORS', () => {
     // Keep in sync with apps/web/src/api/client.ts.
     template.hasResourceProperties('AWS::ApiGatewayV2::Api', {

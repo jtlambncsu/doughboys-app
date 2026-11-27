@@ -2,6 +2,7 @@ import request from 'supertest';
 import { describe, expect, it } from 'vitest';
 import type { Episode } from '@doughboys-app/shared';
 import { createApp } from './app.js';
+import { InMemoryChainStore } from './chains/memory.js';
 import { InMemoryEpisodeStore } from './stores/memory.js';
 
 const episode = (overrides: Partial<Episode> & { slug: string }): Episode => ({
@@ -30,7 +31,10 @@ const store = new InMemoryEpisodeStore([
     averageForks: 4,
   }),
 ]);
-const app = createApp({ store, cacheMs: 0 });
+const chainStore = new InMemoryChainStore([
+  { name: 'Taco Bell', category: 'restaurant', domain: 'tacobell.com' },
+]);
+const app = createApp({ store, chainStore, cacheMs: 0 });
 
 describe('API', () => {
   it('reports health', async () => {
@@ -61,5 +65,11 @@ describe('API', () => {
   it('ranks chains', async () => {
     const res = await request(app).get('/api/chains').expect(200);
     expect(res.body.map((c: { name: string }) => c.name)).toEqual(['Taco Bell', 'IHOP']);
+    expect(res.body[0]).toMatchObject({
+      category: 'restaurant',
+      domain: 'tacobell.com',
+      visits: 1,
+    });
+    expect(res.body[1]).not.toHaveProperty('category'); // not classified yet
   });
 });

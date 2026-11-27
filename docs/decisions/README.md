@@ -12,3 +12,5 @@ New decision? Copy [`0000-template.md`](0000-template.md) to the next number.
 | [0002](0002-wiki-data-source.md)                    | Episode data from the Doughboys Wikia, via its API |
 | [0003](0003-dynamodb-single-table-weekly-import.md) | One DynamoDB table keyed by slug, refreshed weekly |
 | [0004](0004-public-read-only-first.md)              | Public, read-only first; sign-in later             |
+| [0005](0005-classify-chains-with-claude.md)         | Classify chains with Claude during the import      |
+| [0006](0006-logos-from-logo-dev.md)                 | Chain logos from Logo.dev, initials as fallback    |

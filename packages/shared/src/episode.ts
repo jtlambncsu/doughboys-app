@@ -43,11 +43,37 @@ export type Episode = z.infer<typeof episodeSchema>;
 export type EpisodeSummary = Omit<Episode, 'ratings'>;
 
 /** One row of the leaderboard. */
+/** What kind of place a "restaurant" from the wiki is. Some reviews aren't of restaurants. */
+export const chainCategorySchema = z.enum([
+  'restaurant',
+  'grocery',
+  'packaged_food',
+  'produce',
+  'drink',
+  'other',
+]);
+export type ChainCategory = z.infer<typeof chainCategorySchema>;
+
+/** What we know about a chain beyond the wiki: its kind and its website (for the logo). */
+export const chainInfoSchema = z.object({
+  name: z.string(),
+  category: chainCategorySchema,
+  /** The chain's main website, like "tacobell.com", or null when there isn't a clear one. */
+  domain: z.string().nullable(),
+});
+export type ChainInfo = z.infer<typeof chainInfoSchema>;
+
 export const chainSchema = z.object({
   name: z.string(),
   averageForks: z.number(),
-  episodeCount: z.number(),
+  /** Every episode that reviewed it, rated or not. */
+  visits: z.number(),
+  /** The episodes whose scores make up `averageForks`. */
+  ratedVisits: z.number(),
   latestEpisode: z.string(),
+  /** Unknown until it has been classified. */
+  category: chainCategorySchema.optional(),
+  domain: z.string().optional(),
 });
 export type Chain = z.infer<typeof chainSchema>;
 

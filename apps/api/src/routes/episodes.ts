@@ -1,16 +1,18 @@
 import { Router } from 'express';
-import { chainLeaderboard, type EpisodeSummary } from '@doughboys-app/shared';
+import { chainLeaderboard, type ChainInfo, type EpisodeSummary } from '@doughboys-app/shared';
+import { withOverrides } from '../chains/overrides.js';
+import type { ChainStore } from '../chains/types.js';
 import type { EpisodeStore } from '../stores/types.js';
 
 /**
  * Episode data changes about once a week, so the list is kept for a few minutes per Lambda
  * container instead of scanning DynamoDB on every request.
  */
-function cachedList(store: EpisodeStore, ttlMs: number, now: () => number) {
-  let cached: { at: number; value: Promise<EpisodeSummary[]> } | undefined;
+function cached<T>(load: () => Promise<T>, ttlMs: number, now: () => number) {
+  let cached: { at: number; value: Promise<T> } | undefined;
   return () => {
     if (!cached || now() - cached.at > ttlMs) {
-      const value = store.listEpisodes();
+      const value = load();
       cached = { at: now(), value };
       value.catch(() => (cached = undefined)); // don't keep a failure around
     }
@@ -18,9 +20,19 @@ function cachedList(store: EpisodeStore, ttlMs: number, now: () => number) {
   };
 }
 
-export function episodesRouter(store: EpisodeStore, cacheMs: number, now = Date.now) {
+export function episodesRouter(
+  store: EpisodeStore,
+  chainStore: ChainStore,
+  cacheMs: number,
+  now = Date.now,
+) {
   const router = Router();
-  const list = cachedList(store, cacheMs, now);
+  const list = cached((): Promise<EpisodeSummary[]> => store.listEpisodes(), cacheMs, now);
+  const chainInfo = cached(
+    async (): Promise<Map<string, ChainInfo>> => withOverrides(await chainStore.all()),
+    cacheMs,
+    now,
+  );
 
   router.get('/episodes', async (_req, res) => {
     res.json(await list());
@@ -36,7 +48,8 @@ export function episodesRouter(store: EpisodeStore, cacheMs: number, now = Date.
   });
 
   router.get('/chains', async (_req, res) => {
-    res.json(chainLeaderboard(await list()));
+    const [episodes, info] = await Promise.all([list(), chainInfo()]);
+    res.json(chainLeaderboard(episodes, info));
   });
 
   return router;

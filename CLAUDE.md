@@ -22,6 +22,12 @@ conventions; when in doubt, do what Puzzle Log does.
 - API: Express 5 on Lambda; DynamoDB behind the `EpisodeStore` interface with an in-memory fake.
 - Data: imported from the Doughboys Wikia's MediaWiki API and parsed with `wtf_wikipedia`
   (`apps/api/src/wiki`). A scheduled Lambda re-imports weekly.
+- Chains: Claude (`@anthropic-ai/sdk`, structured outputs) classifies new chains during the
+  import (`apps/api/src/chains`); hand fixes go in `chains/overrides.ts`. The key is in SSM
+  (`/doughboys-app/anthropic-api-key`) and never in code, env files or chat. Tests use fakes.
+- Logos: Logo.dev image CDN with a publishable token (`VITE_LOGO_DEV_TOKEN`); initials badge
+  fallback (`ChainLogo`).
+- Ideas for later are in `docs/ROADMAP.md`.
 - Shared: Zod schemas and pure logic in `packages/shared` (consumed as TypeScript source).
 - Infra: AWS CDK in `infra/`, deployed by GitHub Actions on pushes to `main` using OIDC.
 

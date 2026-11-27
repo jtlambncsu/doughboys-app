@@ -8,7 +8,11 @@ import { LambdaFunction } from 'aws-cdk-lib/aws-events-targets';
 import { Architecture, Runtime } from 'aws-cdk-lib/aws-lambda';
 import { NodejsFunction, type NodejsFunctionProps } from 'aws-cdk-lib/aws-lambda-nodejs';
 import { LogGroup, RetentionDays } from 'aws-cdk-lib/aws-logs';
+import { StringParameter } from 'aws-cdk-lib/aws-ssm';
 import type { Construct } from 'constructs';
+
+/** Where the Anthropic API key lives in SSM Parameter Store (a SecureString, made by hand). */
+export const ANTHROPIC_KEY_PARAMETER = '/doughboys-app/anthropic-api-key';
 
 const repoPath = (relative: string) => fileURLToPath(new URL(`../../${relative}`, import.meta.url));
 
@@ -33,13 +37,31 @@ export class ApiStack extends Stack {
       removalPolicy: RemovalPolicy.RETAIN,
     });
 
+    // Each chain's category and website, from Claude. Re-creatable, but it costs API calls,
+    // so it's kept like the episodes table.
+    const chains = new TableV2(this, 'Chains', {
+      partitionKey: { name: 'name', type: AttributeType.STRING },
+      billing: Billing.onDemand(),
+      removalPolicy: RemovalPolicy.RETAIN,
+    });
+
+    // Created once by hand (docs/DEPLOYMENT.md), so the secret never passes through code,
+    // CI or CloudFormation. Until it exists, imports still work; chains stay unclassified.
+    const anthropicKey = StringParameter.fromSecureStringParameterAttributes(this, 'AnthropicKey', {
+      parameterName: ANTHROPIC_KEY_PARAMETER,
+    });
+
     const shared: Partial<NodejsFunctionProps> = {
       projectRoot: repoPath(''),
       depsLockFilePath: repoPath('package-lock.json'),
       runtime: Runtime.NODEJS_24_X,
       architecture: Architecture.ARM_64,
       memorySize: 512,
-      environment: { EPISODES_TABLE: table.tableName, NODE_OPTIONS: '--enable-source-maps' },
+      environment: {
+        EPISODES_TABLE: table.tableName,
+        CHAINS_TABLE: chains.tableName,
+        NODE_OPTIONS: '--enable-source-maps',
+      },
       bundling: { minify: true, sourceMap: true, externalModules: [] },
     };
 
@@ -57,18 +79,23 @@ export class ApiStack extends Stack {
       }),
     });
     table.grantReadData(apiFn); // the API only reads
+    chains.grantReadData(apiFn);
 
-    // Reads ~1,100 pages from the wiki in batches of 50; takes about half a minute.
+    // Reads ~1,100 pages from the wiki in batches of 50 (about half a minute), then asks
+    // Claude to classify chains it hasn't seen (minutes the first time, seconds after).
     const importFn = new NodejsFunction(this, 'ImportFunction', {
       ...shared,
       entry: repoPath('apps/api/src/importLambda.ts'),
-      timeout: Duration.minutes(5),
+      timeout: Duration.minutes(10),
+      environment: { ...shared.environment, ANTHROPIC_KEY_PARAMETER },
       logGroup: new LogGroup(this, 'ImportLogs', {
         retention: RetentionDays.ONE_MONTH,
         removalPolicy: RemovalPolicy.DESTROY,
       }),
     });
     table.grantWriteData(importFn);
+    chains.grantReadWriteData(importFn);
+    anthropicKey.grantRead(importFn);
 
     // New episodes come out on Thursdays and fans update the wiki over the following days.
     new Rule(this, 'WeeklyImport', {

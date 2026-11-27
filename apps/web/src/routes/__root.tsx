@@ -7,6 +7,7 @@ import {
 } from '@tanstack/react-router';
 import { useQueryErrorResetBoundary } from '@tanstack/react-query';
 import { Utensils } from 'lucide-react';
+import { logosEnabled } from '@/lib/logos';
 import { ErrorState } from '@/components/ErrorState';
 import { Button } from '@/components/ui/button';
 import type { RouterContext } from '@/router';
@@ -38,7 +39,7 @@ function Shell({ children }: { children: React.ReactNode }) {
             </span>
           </Link>
           <nav aria-label="Main" className="flex gap-1">
-            <Link to="/" className={navLink} activeOptions={{ exact: true }}>
+            <Link to="/" className={navLink} activeOptions={{ exact: true, includeSearch: false }}>
               Leaderboard
             </Link>
             <Link to="/episodes" className={navLink}>
@@ -69,6 +70,15 @@ function Shell({ children }: { children: React.ReactNode }) {
           CC BY-SA
         </a>
         .
+        {logosEnabled && (
+          <>
+            {' '}
+            <a className="underline" href="https://logo.dev" target="_blank" rel="noreferrer">
+              Logos provided by Logo.dev
+            </a>
+            .
+          </>
+        )}
       </footer>
     </div>
   );

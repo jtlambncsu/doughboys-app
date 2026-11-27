@@ -1,11 +1,15 @@
 import express, { type ErrorRequestHandler } from 'express';
 import cors from 'cors';
 import { episodesRouter } from './routes/episodes.js';
+import { InMemoryChainStore } from './chains/memory.js';
+import type { ChainStore } from './chains/types.js';
 import { InMemoryEpisodeStore } from './stores/memory.js';
 import type { EpisodeStore } from './stores/types.js';
 
 export interface AppDeps {
   store?: EpisodeStore;
+  /** Chain categories and websites, from the import's classification. */
+  chainStore?: ChainStore;
   /** Origins allowed to call the API from a browser. Omit to allow any origin. */
   allowedOrigins?: string[];
   /** How long to reuse the episode list. Tests pass 0. */
@@ -14,6 +18,7 @@ export interface AppDeps {
 
 export function createApp({
   store = new InMemoryEpisodeStore(),
+  chainStore = new InMemoryChainStore(),
   allowedOrigins,
   cacheMs = 5 * 60 * 1000,
 }: AppDeps = {}) {
@@ -28,7 +33,7 @@ export function createApp({
   });
 
   // Public, read-only data from the wiki. Signed-in features (your own ratings) come later.
-  app.use('/api', episodesRouter(store, cacheMs));
+  app.use('/api', episodesRouter(store, chainStore, cacheMs));
 
   app.use('/api', (_req, res) => {
     res.status(404).json({ error: 'Not found' });

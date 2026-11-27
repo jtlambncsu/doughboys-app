@@ -61,6 +61,25 @@ It prints how many episodes it imported (about 1,100).
    deploy, so the API only answers that site. After this, `*.vercel.app` URLs can't load
    data.
 
+### Anthropic key (chain categories and websites)
+
+The import asks Claude to classify new chains (ADR 0005). Create the key once in
+console.anthropic.com, then store it in SSM from CloudShell. `read -s` keeps it out of the
+screen and your shell history; paste the key and press Enter:
+
+```bash
+read -s KEY && aws ssm put-parameter --name /doughboys-app/anthropic-api-key \
+  --type SecureString --value "$KEY" --overwrite && unset KEY && echo saved
+```
+
+Then run the import once (step 4) to classify every chain. Without the key, imports still
+work and chains stay unclassified.
+
+### Logo.dev token (logos)
+
+Sign up at logo.dev, copy the **publishable** token (starts with `pk_`), and add it in
+Vercel as `VITE_LOGO_DEV_TOKEN`, then redeploy the web app. Without it, chains show initials.
+
 ### 6. Check the live API
 
 ```bash

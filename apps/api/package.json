@@ -26,7 +26,9 @@
     "vitest": "^5.1.2"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^1.14.0",
     "@aws-sdk/client-dynamodb": "^3.1178.0",
+    "@aws-sdk/client-ssm": "^3.1178.0",
     "@aws-sdk/lib-dynamodb": "^3.1178.0",
     "@doughboys-app/shared": "^0.0.0",
     "cors": "^2.8.6",
