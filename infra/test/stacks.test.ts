@@ -67,6 +67,18 @@ describe('ApiStack', () => {
     });
   });
 
+  it('lets the import job read, write and delete episodes', () => {
+    // It scans to find stale feed-only episodes; a write-only grant failed in production.
+    const actions = JSON.stringify(
+      template.findResources('AWS::IAM::Policy', {
+        Properties: { Roles: [{ Ref: Match.stringLikeRegexp('ImportFunction') }] },
+      }),
+    );
+    for (const action of ['dynamodb:Scan', 'dynamodb:BatchWriteItem', 'dynamodb:DeleteItem']) {
+      expect(actions).toContain(action);
+    }
+  });
+
   it('gives the API read-only access to the table', () => {
     const policies = template.findResources('AWS::IAM::Policy', {
       Properties: { Roles: [{ Ref: Match.stringLikeRegexp('ApiFunction') }] },

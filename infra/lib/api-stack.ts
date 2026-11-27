@@ -95,7 +95,8 @@ export class ApiStack extends Stack {
         removalPolicy: RemovalPolicy.DESTROY,
       }),
     });
-    table.grantWriteData(importFn);
+    // Reads too: it lists episodes to remove feed-only ones the wiki now covers.
+    table.grantReadWriteData(importFn);
     chains.grantReadWriteData(importFn);
     anthropicKey.grantRead(importFn);
 

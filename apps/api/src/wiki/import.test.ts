@@ -155,4 +155,18 @@ describe('importFromWiki', () => {
     );
     expect(result).toMatchObject({ episodes: 1, fromFeed: 0, feedError: 'Error: feed down' });
   });
+
+  it('still saves episodes when cleaning up old feed episodes fails', async () => {
+    // Like production on 2026-11-27, when the import's role couldn't scan the table.
+    const store = new InMemoryEpisodeStore();
+    store.listEpisodes = () => Promise.reject(new Error('AccessDeniedException'));
+
+    const result = await importFromWiki(
+      new FakeWiki([{ title: 'IHOP with Alison Agosti', wikitext: fixture('ihop.wiki') }]),
+      store,
+    );
+
+    expect(result).toMatchObject({ episodes: 1, replacedFeedEpisodes: 0 });
+    expect(await store.getEpisode('IHOP with Alison Agosti')).toBeDefined();
+  });
 });

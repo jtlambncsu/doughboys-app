@@ -75,14 +75,8 @@ export async function importFromWiki(
   const fromFeed = feed ? await newFromFeed(feed, episodes) : { added: [] };
   episodes.push(...fromFeed.added);
 
-  // Feed-only episodes from earlier runs that the wiki now covers (under its own title).
-  const current = new Set(episodes.map((e) => e.slug));
-  const stale = (await store.listEpisodes())
-    .filter((e) => e.source === 'feed' && !current.has(e.slug))
-    .map((e) => e.slug);
-
   await store.putEpisodes(episodes);
-  if (stale.length) await store.deleteEpisodes(stale);
+  const stale = await removeReplacedFeedEpisodes(store, episodes);
   const classification = chains ? await classifyNewChains(episodes, chains) : { classified: 0 };
   return {
     ...classification,
@@ -94,6 +88,24 @@ export async function importFromWiki(
     replacedFeedEpisodes: stale.length,
     ...('error' in fromFeed && { feedError: fromFeed.error }),
   };
+}
+
+/**
+ * Deletes feed-only episodes from earlier runs that the wiki now covers (under its own
+ * title). Runs after saving, and a failure is only logged: it must never block new data.
+ */
+async function removeReplacedFeedEpisodes(store: EpisodeStore, episodes: Episode[]) {
+  try {
+    const current = new Set(episodes.map((e) => e.slug));
+    const stale = (await store.listEpisodes())
+      .filter((e) => e.source === 'feed' && !current.has(e.slug))
+      .map((e) => e.slug);
+    if (stale.length) await store.deleteEpisodes(stale);
+    return stale;
+  } catch (error) {
+    console.error('Removing replaced feed episodes failed', error);
+    return [];
+  }
 }
 
 /**

@@ -119,3 +119,21 @@ leaderboard rows and are now one chain with four visits.
 
 **Takeaway:** keep user-facing text out of URL paths, and test against the real gateway:
 local tests can't see what the proxy in front of the app does to a request.
+
+## The import that wasn't allowed to read
+
+**Symptom:** the first import after adding the podcast feed failed in AWS with
+`AccessDeniedException ... not authorized to perform: dynamodb:Scan`. Nothing was saved,
+though every test passed.
+
+**Cause:** the import Lambda had only `grantWriteData` on the episodes table: it used to only
+write. The new clean-up step (removing feed-only episodes the wiki now covers) lists the
+table first, which is a read. Tests use the in-memory store, which has no permissions, and
+the CDK tests only checked the API's role. Worse, the clean-up ran before saving, so its
+failure blocked all new data.
+
+**Fix:** `grantReadWriteData` for the import, a CDK test that asserts the import role can
+Scan, BatchWrite and Delete, and the clean-up now runs after saving and only logs a failure.
+
+**Takeaway:** when a job gains a new kind of database call, check its IAM grant too: fakes
+can't catch permissions. And order steps so optional work can't block essential work.
