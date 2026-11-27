@@ -15,3 +15,4 @@ New decision? Copy [`0000-template.md`](0000-template.md) to the next number.
 | [0005](0005-classify-chains-with-claude.md)         | Classify chains with Claude during the import       |
 | [0006](0006-logos-from-logo-dev.md)                 | Chain logos from Logo.dev, initials as fallback     |
 | [0007](0007-chain-pages-and-score-chart.md)         | Chain pages with a score-over-time chart (Recharts) |
+| [0008](0008-podcast-feed-for-new-episodes.md)       | New episodes from the podcast feed; daily import    |

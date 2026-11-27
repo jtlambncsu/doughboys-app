@@ -30,6 +30,7 @@ function EpisodePage() {
       <header className="space-y-2">
         <div className="flex flex-wrap items-center gap-2">
           <Badge variant="secondary">{episodeLabel(episode.number, episode.series)}</Badge>
+          {episode.source === 'feed' && <Badge>New</Badge>}
           {episode.releaseDate && (
             <span className="text-muted-foreground text-sm">{formatDate(episode.releaseDate)}</span>
           )}
@@ -83,19 +84,27 @@ function EpisodePage() {
           ))}
         </section>
       ) : (
-        <p className="text-muted-foreground">The wiki has no ratings for this episode yet.</p>
+        <p className="text-muted-foreground">
+          {episode.source === 'feed'
+            ? 'Just released. Ratings, orders and quotes will appear once fans add this episode to the wiki, usually within a couple of weeks.'
+            : 'The wiki has no ratings for this episode yet.'}
+        </p>
       )}
 
       {episode.details && <EpisodeExtras details={episode.details} />}
 
-      <a
-        href={episode.wikiUrl}
-        target="_blank"
-        rel="noreferrer"
-        className="text-primary inline-flex items-center gap-1 text-sm underline"
-      >
-        Read more on the Doughboys Wikia <ExternalLink className="size-3.5" aria-hidden />
-      </a>
+      {episode.wikiUrl ? (
+        <a
+          href={episode.wikiUrl}
+          target="_blank"
+          rel="noreferrer"
+          className="text-primary inline-flex items-center gap-1 text-sm underline"
+        >
+          Read more on the Doughboys Wikia <ExternalLink className="size-3.5" aria-hidden />
+        </a>
+      ) : (
+        <p className="text-muted-foreground text-xs">Synopsis from the official podcast feed.</p>
+      )}
     </article>
   );
 }

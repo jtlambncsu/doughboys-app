@@ -1,5 +1,6 @@
-import { chainsInEpisodes, type Episode } from '@doughboys-app/shared';
+import { chainSlug, chainsInEpisodes, type Episode } from '@doughboys-app/shared';
 import type { ChainClassifier, ChainStore } from '../chains/types.js';
+import { episodeFromFeed, type FeedSource } from '../feed/feed.js';
 import type { EpisodeStore } from '../stores/types.js';
 import type { WikiSource } from './client.js';
 import {
@@ -18,6 +19,11 @@ export interface ImportResult {
   classified: number;
   /** Why classification didn't run or failed, if it didn't complete. */
   classificationError?: string;
+  /** New episodes added from the podcast feed because the wiki doesn't have them yet. */
+  fromFeed: number;
+  /** Feed-only episodes removed because the wiki covers them now. */
+  replacedFeedEpisodes: number;
+  feedError?: string;
 }
 
 export interface ChainDeps {
@@ -26,11 +32,16 @@ export interface ChainDeps {
   classifier?: ChainClassifier;
 }
 
-/** Reads every episode from the wiki and saves it. Safe to re-run: each episode is replaced. */
+/**
+ * Reads every episode from the wiki, adds numbered episodes from the podcast feed that the
+ * wiki hasn't covered yet, and saves them. Safe to re-run: each episode is replaced, and
+ * feed-only episodes are removed once the wiki has them.
+ */
 export async function importFromWiki(
   wiki: WikiSource,
   store: EpisodeStore,
   chains?: ChainDeps,
+  feed?: FeedSource,
 ): Promise<ImportResult> {
   const restaurantsPage = await wiki.page('Restaurants');
   const restaurants = restaurantsPage
@@ -61,7 +72,17 @@ export async function importFromWiki(
     }
   }
 
+  const fromFeed = feed ? await newFromFeed(feed, episodes) : { added: [] };
+  episodes.push(...fromFeed.added);
+
+  // Feed-only episodes from earlier runs that the wiki now covers (under its own title).
+  const current = new Set(episodes.map((e) => e.slug));
+  const stale = (await store.listEpisodes())
+    .filter((e) => e.source === 'feed' && !current.has(e.slug))
+    .map((e) => e.slug);
+
   await store.putEpisodes(episodes);
+  if (stale.length) await store.deleteEpisodes(stale);
   const classification = chains ? await classifyNewChains(episodes, chains) : { classified: 0 };
   return {
     ...classification,
@@ -69,7 +90,36 @@ export async function importFromWiki(
     withRatings: episodes.filter((e) => e.averageForks !== undefined).length,
     withRestaurant: episodes.filter((e) => e.restaurant).length,
     skipped,
+    fromFeed: fromFeed.added.length,
+    replacedFeedEpisodes: stale.length,
+    ...('error' in fromFeed && { feedError: fromFeed.error }),
   };
+}
+
+/**
+ * Main-show episodes in the feed whose number the wiki doesn't have yet. A feed failure is
+ * logged and skipped: the wiki data still gets saved.
+ */
+async function newFromFeed(
+  feed: FeedSource,
+  wikiEpisodes: Episode[],
+): Promise<{ added: Episode[]; error?: string }> {
+  try {
+    const items = await feed.episodes();
+    const numbers = new Set(wikiEpisodes.filter((e) => e.series === 'main').map((e) => e.number));
+    const slugs = new Set(wikiEpisodes.map((e) => e.slug));
+    const knownChains = new Map(
+      wikiEpisodes.flatMap((e) => (e.restaurant ? [[chainSlug(e.restaurant), e.restaurant]] : [])),
+    ) as Map<string, string>;
+    const added = items
+      .filter((item) => !numbers.has(item.number))
+      .map((item) => episodeFromFeed(item, knownChains))
+      .filter((episode) => !slugs.has(episode.slug));
+    return { added };
+  } catch (error) {
+    console.error('Podcast feed failed', error);
+    return { added: [], error: String(error) };
+  }
 }
 
 /**

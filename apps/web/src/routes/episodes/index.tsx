@@ -6,6 +6,7 @@ import { episodesQueryOptions } from '@/api/queries';
 import { ForkScore } from '@/components/ForkScore';
 import { ListSkeleton } from '@/components/ListSkeleton';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { episodeLabel, formatDate } from '@/lib/format';
@@ -92,6 +93,7 @@ function Episodes() {
                     </span>
                   </span>
                   {episode.averageForks !== undefined && <ForkScore value={episode.averageForks} />}
+                  {episode.source === 'feed' && <Badge>New</Badge>}
                 </Link>
               </li>
             ))}

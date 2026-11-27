@@ -21,7 +21,8 @@ conventions; when in doubt, do what Puzzle Log does.
   `apps/web/src/routes`), TanStack Query (`apps/web/src/api/queries.ts`).
 - API: Express 5 on Lambda; DynamoDB behind the `EpisodeStore` interface with an in-memory fake.
 - Data: imported from the Doughboys Wikia's MediaWiki API and parsed with `wtf_wikipedia`
-  (`apps/api/src/wiki`). A scheduled Lambda re-imports weekly.
+  (`apps/api/src/wiki`), plus new episodes from the official podcast feed (`apps/api/src/feed`,
+  `fast-xml-parser`) until the wiki covers them. A scheduled Lambda re-imports daily.
 - Chains: Claude (`@anthropic-ai/sdk`, structured outputs) classifies new chains during the
   import (`apps/api/src/chains`); hand fixes go in `chains/overrides.ts`. The key is in SSM
   (`/doughboys-app/anthropic-api-key`) and never in code, env files or chat. Tests use fakes.
@@ -55,3 +56,4 @@ conventions; when in doubt, do what Puzzle Log does.
   `corsPreflight`. Tests can't catch this.
 - In the cloud sandbox, Node's `fetch` ignores the proxy: run the import with
   `NODE_USE_ENV_PROXY=1 NODE_EXTRA_CA_CERTS=/root/.ccr/ca-bundle.crt npm run import:wiki`.
+- The sandbox also needs `rss.art19.com` (the podcast feed) for a full local import.

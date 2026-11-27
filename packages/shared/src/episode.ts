@@ -54,7 +54,13 @@ export const episodeSchema = z.object({
    * (fans there handle joke scores like "100 forks"), otherwise the mean of the 0-5 ratings.
    */
   averageForks: z.number().optional(),
-  wikiUrl: z.url(),
+  /** Missing for episodes known only from the podcast feed so far. */
+  wikiUrl: z.url().optional(),
+  /**
+   * Where the episode came from: the fan wiki (the default), or the official podcast feed
+   * for new episodes the wiki hasn't covered yet. Those have no ratings until it does.
+   */
+  source: z.enum(['wiki', 'feed']).optional(),
   details: episodeDetailsSchema.optional(),
 });
 export type Episode = z.infer<typeof episodeSchema>;

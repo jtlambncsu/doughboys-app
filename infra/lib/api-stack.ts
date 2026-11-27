@@ -23,7 +23,8 @@ export interface ApiStackProps extends StackProps {
 
 /**
  * A public, read-only API over episode data: DynamoDB + a Lambda running the Express app,
- * behind an API Gateway HTTP API, plus a weekly job that refreshes the data from the wiki.
+ * behind an API Gateway HTTP API, plus a daily job that refreshes the data from the wiki and
+ * the podcast feed.
  */
 export class ApiStack extends Stack {
   constructor(scope: Construct, id: string, props: ApiStackProps = {}) {
@@ -81,7 +82,8 @@ export class ApiStack extends Stack {
     table.grantReadData(apiFn); // the API only reads
     chains.grantReadData(apiFn);
 
-    // Reads ~1,100 pages from the wiki in batches of 50 (about half a minute), then asks
+    // Reads ~1,100 pages from the wiki in batches of 50 (about half a minute) and the podcast
+    // feed, then asks
     // Claude to classify chains it hasn't seen (minutes the first time, seconds after).
     const importFn = new NodejsFunction(this, 'ImportFunction', {
       ...shared,
@@ -97,10 +99,11 @@ export class ApiStack extends Stack {
     chains.grantReadWriteData(importFn);
     anthropicKey.grantRead(importFn);
 
-    // New episodes come out on Thursdays and fans update the wiki over the following days.
-    new Rule(this, 'WeeklyImport', {
-      description: 'Refresh episode data from the Doughboys Wikia',
-      schedule: Schedule.cron({ weekDay: 'SUN', hour: '15', minute: '17' }),
+    // Daily: new episodes appear in the podcast feed on release day, and fans fill in the
+    // wiki over the following days. About 25 gentle wiki requests and one feed request.
+    new Rule(this, 'DailyImport', {
+      description: 'Refresh episodes from the podcast feed and the Doughboys Wikia',
+      schedule: Schedule.cron({ hour: '15', minute: '17' }),
       targets: [new LambdaFunction(importFn)],
     });
 

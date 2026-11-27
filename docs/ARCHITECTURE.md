@@ -1,9 +1,9 @@
 # Architecture
 
 ```
-Doughboys Wikia (MediaWiki API)
-        │  weekly, ~25 requests
-        ▼
+Doughboys Wikia (MediaWiki API)      Official podcast feed (RSS)
+        │  daily, ~25 requests                │  daily, 1 request (new episodes)
+        ▼                                      ▼
 Import Lambda ── parse with wtf_wikipedia ──► DynamoDB (Episodes, keyed by slug)
                                                    ▲
 Browser ──► Vercel (React app) ──► API Gateway ──► API Lambda (Express, read-only)
@@ -16,7 +16,7 @@ Browser ──► Vercel (React app) ──► API Gateway ──► API Lambda 
 | `packages/shared` | Zod schemas (`Episode`, `Rating`, `Chain`), fork parsing, the leaderboard |
 | `apps/api`        | Express API, the wiki client/parser/importer, DynamoDB store              |
 | `apps/web`        | React app: leaderboard, episode list, episode page                        |
-| `infra`           | CDK: table, two Lambdas, HTTP API, weekly schedule, GitHub deploy role    |
+| `infra`           | CDK: tables, two Lambdas, HTTP API, daily schedule, GitHub deploy role    |
 
 ## Data flow
 
@@ -28,6 +28,8 @@ Browser ──► Vercel (React app) ──► API Gateway ──► API Lambda 
    gives a table of who ordered what and their score. The Restaurants list maps each
    episode to the chain it reviewed and the wiki's overall score for it.
 3. **Store.** Episodes are written to DynamoDB in batches of 25. Re-running replaces them.
+   3b. **Feed.** The official podcast feed adds numbered episodes the wiki doesn't have yet
+   (`source: 'feed'`, synopsis only), replaced once the wiki covers them (ADR 0008).
 4. **Serve.** The API lists episodes (cached a few minutes per Lambda container), gets one
    by slug, and computes the chain leaderboard from the list (`chainLeaderboard` in shared).
 5. **Show.** Route loaders prefetch with TanStack Query; pages read with `useSuspenseQuery`.

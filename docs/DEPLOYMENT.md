@@ -43,7 +43,7 @@ The next push to `main` deploys `DoughboysApi`. Its outputs include `ApiUrl` and
 
 ### 4. Load the data once
 
-The weekly import runs on Sundays. To fill the table right away:
+The import runs daily at 15:17 UTC. To fill the table right away:
 
 ```bash
 aws lambda invoke --function-name IMPORT_FUNCTION_NAME /dev/stdout

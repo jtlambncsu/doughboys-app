@@ -17,16 +17,19 @@ import {
   storeFromEnv,
 } from '../src/config.js';
 import { InMemoryEpisodeStore } from '../src/stores/memory.js';
+import { PodcastFeedSource } from '../src/feed/feed.js';
 import { MediaWikiSource } from '../src/wiki/client.js';
 import { importFromWiki } from '../src/wiki/import.js';
 
 const store = storeFromEnv();
 const chainStore = chainStoreFromEnv();
 
-const result = await importFromWiki(new MediaWikiSource(), store, {
-  store: chainStore,
-  classifier: classifierFromEnv(),
-});
+const result = await importFromWiki(
+  new MediaWikiSource(),
+  store,
+  { store: chainStore, classifier: classifierFromEnv() },
+  new PodcastFeedSource(),
+);
 
 function save(name: 'episodes' | 'chains', items: unknown[]) {
   mkdirSync(dirname(localDataFile(name)), { recursive: true });
@@ -39,6 +42,13 @@ console.log(
   `Imported ${result.episodes} episodes (${result.withRatings} with fork ratings, ` +
     `${result.withRestaurant} matched to a restaurant); classified ${result.classified} new chains.`,
 );
+console.log(
+  `From the podcast feed: ${result.fromFeed} new episodes the wiki doesn't have yet` +
+    (result.replacedFeedEpisodes
+      ? `; ${result.replacedFeedEpisodes} replaced by wiki pages.`
+      : '.'),
+);
+if (result.feedError) console.log(`Feed skipped: ${result.feedError}`);
 if (result.classificationError)
   console.log(`Classification skipped: ${result.classificationError}`);
 if (result.skipped.length)

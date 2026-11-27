@@ -44,6 +44,21 @@ export function seedEpisodes() {
     averageForks: 4.5,
   });
   db.add({
+    slug: 'Chipotle 4 with Raina Huang',
+    title: 'Chipotle 4 with Raina Huang',
+    number: '569',
+    releaseDate: '2026-11-12',
+    restaurant: 'Chipotle',
+    source: 'feed',
+    wikiUrl: undefined,
+    details: {
+      synopsis: "Raina Huang joins the 'boys before a review of Chipotle.",
+      quotes: [],
+      roasts: [],
+      related: [],
+    },
+  });
+  db.add({
     slug: 'RIP Mama Celeste with Sandy Honig',
     number: 'DD',
     series: 'double',

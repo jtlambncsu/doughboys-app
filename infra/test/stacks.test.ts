@@ -61,9 +61,9 @@ describe('ApiStack', () => {
     });
   });
 
-  it('refreshes from the wiki weekly', () => {
+  it('refreshes from the feed and the wiki daily', () => {
     template.hasResourceProperties('AWS::Events::Rule', {
-      ScheduleExpression: 'cron(17 15 ? * SUN *)',
+      ScheduleExpression: 'cron(17 15 * * ? *)',
     });
   });
 

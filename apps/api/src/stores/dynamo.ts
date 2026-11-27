@@ -8,6 +8,10 @@ import {
   paginateScan,
 } from '@aws-sdk/lib-dynamodb';
 import type { Episode } from '@doughboys-app/shared';
+
+type WriteRequest =
+  | { PutRequest: { Item: Record<string, unknown> } }
+  | { DeleteRequest: { Key: Record<string, unknown> } };
 import { newestFirst, toSummary, type EpisodeStore } from './types.js';
 
 /** Episodes in one DynamoDB table keyed by `slug`. See docs/decisions/0003. */
@@ -20,11 +24,17 @@ export class DynamoEpisodeStore implements EpisodeStore {
   ) {}
 
   async putEpisodes(episodes: Episode[]) {
-    // BatchWrite takes 25 items at a time and may hand some back to retry when throttled.
-    for (let i = 0; i < episodes.length; i += 25) {
-      let requests: { PutRequest: { Item: Record<string, unknown> } }[] | undefined = episodes
-        .slice(i, i + 25)
-        .map((episode) => ({ PutRequest: { Item: episode } }));
+    await this.batchWrite(episodes.map((episode) => ({ PutRequest: { Item: episode } })));
+  }
+
+  async deleteEpisodes(slugs: string[]) {
+    await this.batchWrite(slugs.map((slug) => ({ DeleteRequest: { Key: { slug } } })));
+  }
+
+  private async batchWrite(all: WriteRequest[]) {
+    // BatchWrite takes 25 requests at a time and may hand some back to retry when throttled.
+    for (let i = 0; i < all.length; i += 25) {
+      let requests: WriteRequest[] | undefined = all.slice(i, i + 25);
       for (let attempt = 0; requests?.length; attempt++) {
         if (attempt > 5) throw new Error('DynamoDB kept throttling the import');
         if (attempt) await new Promise((resolve) => setTimeout(resolve, 100 * 2 ** attempt));
@@ -49,6 +59,7 @@ export class DynamoEpisodeStore implements EpisodeStore {
       'guests',
       'averageForks',
       'wikiUrl',
+      'source',
     ];
     const episodes: Episode[] = [];
     for await (const page of paginateScan(

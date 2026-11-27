@@ -20,6 +20,10 @@ export class InMemoryEpisodeStore implements EpisodeStore {
     return this.episodes.get(slug);
   }
 
+  async deleteEpisodes(slugs: string[]) {
+    for (const slug of slugs) this.episodes.delete(slug);
+  }
+
   async getEpisodes(slugs: string[]) {
     return slugs.flatMap((slug) => this.episodes.get(slug) ?? []);
   }

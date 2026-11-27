@@ -14,7 +14,11 @@ describe('episode list', () => {
       within(list)
         .getAllByRole('link')
         .map((l) => l.querySelector('span span')?.textContent),
-    ).toEqual(['IHOP with Alison Agosti', 'Taco Bell with Jack Allison']);
+    ).toEqual([
+      'Chipotle 4 with Raina Huang',
+      'IHOP with Alison Agosti',
+      'Taco Bell with Jack Allison',
+    ]);
 
     await userEvent.click(screen.getByRole('tab', { name: 'Double' }));
     expect(
@@ -119,5 +123,27 @@ describe('episode page extras', () => {
     expect(
       await screen.findByRole('heading', { name: 'Taco Bell with Jack Allison', level: 1 }),
     ).toBeInTheDocument();
+  });
+});
+
+describe('new episodes from the podcast feed', () => {
+  it('are marked new in the list', async () => {
+    seedEpisodes();
+    renderApp('/episodes');
+
+    const row = await screen.findByRole('link', { name: /Chipotle 4 with Raina Huang/ });
+    expect(within(row).getByText('New')).toBeInTheDocument();
+  });
+
+  it('explain that ratings are coming, and credit the feed instead of the wiki', async () => {
+    seedEpisodes();
+    renderApp(`/episodes/${encodeURIComponent('Chipotle 4 with Raina Huang')}`);
+
+    expect(
+      await screen.findByText(/Just released\. Ratings, orders and quotes/),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/before a review of Chipotle/)).toBeInTheDocument();
+    expect(screen.getByText('Synopsis from the official podcast feed.')).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /Read more/ })).not.toBeInTheDocument();
   });
 });

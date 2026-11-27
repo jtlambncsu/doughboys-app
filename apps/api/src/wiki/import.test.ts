@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { InMemoryChainStore } from '../chains/memory.js';
 import type { ChainClassifier } from '../chains/types.js';
 import { InMemoryEpisodeStore } from '../stores/memory.js';
+import type { FeedSource } from '../feed/feed.js';
 import type { WikiPage, WikiSource } from './client.js';
 import { importFromWiki } from './import.js';
 
@@ -41,6 +42,8 @@ describe('importFromWiki', () => {
       withRestaurant: 1,
       skipped: ['Not an episode'],
       classified: 0,
+      fromFeed: 0,
+      replacedFeedEpisodes: 0,
     });
     expect(
       await store.getEpisode("Al's Beef with Megan Batoon & Amir Blumenfeld (LIVE)"),
@@ -92,5 +95,64 @@ describe('importFromWiki', () => {
       classified: 0,
       classificationError: 'Error: API down',
     });
+  });
+
+  it('adds new episodes from the feed until the wiki covers them', async () => {
+    const store = new InMemoryEpisodeStore();
+    const chipotle = {
+      number: '569',
+      title: 'Chipotle 4 with Raina Huang',
+      releaseDate: '2026-11-12',
+      synopsis: 'Raina Huang joins the boys before a review of Chipotle.',
+      reviewOf: "Al's Beef", // a known chain, to check it reuses the wiki's spelling
+    };
+    const feed: FeedSource = {
+      episodes: async () => [
+        chipotle,
+        { number: '208', title: 'Already on the wiki', releaseDate: '2019-06-20' },
+      ],
+    };
+    const wikiPages = [
+      { title: 'Restaurants', wikitext: fixture('restaurants.wiki') },
+      {
+        title: "Al's Beef with Megan Batoon & Amir Blumenfeld (LIVE)",
+        wikitext: fixture('als-beef.wiki'),
+      },
+    ];
+
+    const first = await importFromWiki(new FakeWiki(wikiPages), store, undefined, feed);
+
+    expect(first).toMatchObject({ episodes: 2, fromFeed: 1, replacedFeedEpisodes: 0 });
+    expect(await store.getEpisode('Chipotle 4 with Raina Huang')).toMatchObject({
+      source: 'feed',
+      number: '569',
+      restaurant: "Al's Beef",
+      details: { synopsis: 'Raina Huang joins the boys before a review of Chipotle.' },
+    });
+
+    // A week later the wiki has #569, under a slightly different title.
+    const second = await importFromWiki(
+      new FakeWiki([
+        ...wikiPages,
+        { title: 'Chipotle IV with Raina Huang', wikitext: '{{InfoboxEp|ep_number=569}}' },
+      ]),
+      store,
+      undefined,
+      feed,
+    );
+
+    expect(second).toMatchObject({ fromFeed: 0, replacedFeedEpisodes: 1 });
+    expect(await store.getEpisode('Chipotle 4 with Raina Huang')).toBeUndefined();
+    expect(await store.getEpisode('Chipotle IV with Raina Huang')).toBeDefined();
+  });
+
+  it('still saves wiki episodes when the feed fails', async () => {
+    const result = await importFromWiki(
+      new FakeWiki([{ title: 'IHOP with Alison Agosti', wikitext: fixture('ihop.wiki') }]),
+      new InMemoryEpisodeStore(),
+      undefined,
+      { episodes: async () => Promise.reject(new Error('feed down')) },
+    );
+    expect(result).toMatchObject({ episodes: 1, fromFeed: 0, feedError: 'Error: feed down' });
   });
 });

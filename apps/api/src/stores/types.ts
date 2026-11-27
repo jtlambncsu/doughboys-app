@@ -9,6 +9,7 @@ export interface EpisodeStore {
   getEpisode(slug: string): Promise<Episode | undefined>;
   /** Several episodes at once, in any order; unknown slugs are skipped. */
   getEpisodes(slugs: string[]): Promise<Episode[]>;
+  deleteEpisodes(slugs: string[]): Promise<void>;
 }
 
 export function toSummary({
