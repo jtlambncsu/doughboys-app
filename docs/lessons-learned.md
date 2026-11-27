@@ -137,3 +137,25 @@ Scan, BatchWrite and Delete, and the clean-up now runs after saving and only log
 
 **Takeaway:** when a job gains a new kind of database call, check its IAM grant too: fakes
 can't catch permissions. And order steps so optional work can't block essential work.
+
+## The passkey domain that didn't exist yet
+
+**Symptom:** the first deploy with fan accounts failed creating the Cognito user pool:
+`RelyingPartyId cannot be reserved domain other than User Pool's prefix domain`. CloudFormation
+rolled back; the site was unaffected.
+
+**Cause:** to allow passkeys, I set the pool's passkey relying party ID to its Cognito domain
+(`doughboys-app-….auth.us-east-1.amazoncognito.com`). But that domain is created after the
+pool, so when the pool was created it named an `amazoncognito.com` domain the pool didn't
+own yet, which Cognito rejects. CDK synthesis and the template tests can't know that.
+
+**Fix:** leave `passkeyRelyingPartyId` unset. With only a prefix domain, Cognito uses that
+domain for passkeys by default. The setting is only needed with a custom domain.
+
+**Side effect:** the new tables are `RETAIN` (user data), so the rollback skipped deleting
+them: "DELETE_SKIPPED" in the log. Empty leftovers are harmless (the next deploy creates
+new ones with new names) and can be deleted by hand.
+
+**Takeaway:** a template that synthesizes isn't a template that deploys. For resources
+with ordering rules between them, read the service's docs on defaults before setting
+something explicitly.

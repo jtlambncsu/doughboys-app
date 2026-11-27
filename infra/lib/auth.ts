@@ -33,7 +33,6 @@ export class Auth extends Construct {
     // unique ID rather than the account ID.
     const stackGuid = Fn.select(2, Fn.split('/', Stack.of(this).stackId));
     const domainPrefix = Fn.join('-', ['doughboys-app', Fn.select(0, Fn.split('-', stackGuid))]);
-    const loginHost = Fn.join('', [domainPrefix, `.auth.${region}.amazoncognito.com`]);
 
     this.userPool = new UserPool(this, 'UserPool', {
       // Anyone can sign up, but must verify their email before signing in.
@@ -51,7 +50,8 @@ export class Auth extends Construct {
       },
       featurePlan: FeaturePlan.ESSENTIALS, // needed for passkeys with managed login
       signInPolicy: { allowedFirstAuthFactors: { password: true, passkey: true } },
-      passkeyRelyingPartyId: loginHost,
+      // No passkeyRelyingPartyId: with only a Cognito prefix domain, passkeys use that domain
+      // by default, and naming it here fails (the domain doesn't exist yet). See lessons.
       passkeyUserVerification: PasskeyUserVerification.REQUIRED,
       deletionProtection: true,
       removalPolicy: RemovalPolicy.RETAIN,
