@@ -5,7 +5,6 @@ import type {
   Episode,
   EpisodeSummary,
   FanRating,
-  MenuItem,
   MyRating,
   Profile,
   RatingInput,
@@ -77,7 +76,6 @@ export function createDoughboysApi(getAccessToken: GetAccessToken = async () => 
     chains: () => request<Chain[]>('/chains'),
     chain: (slug: string) => request<ChainDetail>(chainPath(slug)),
     chainRatings: (slug: string) => request<ChainRatings>(`${chainPath(slug)}/ratings`),
-    menu: (slug: string) => request<MenuItem[]>(`${chainPath(slug)}/menu`),
 
     me: () => request<Profile>('/me', { auth: true }),
     saveProfile: (displayName: string) =>

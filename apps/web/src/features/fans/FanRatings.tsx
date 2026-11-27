@@ -3,15 +3,9 @@ import { useQuery } from '@tanstack/react-query';
 import { useRouteContext } from '@tanstack/react-router';
 import { MapPin } from 'lucide-react';
 import type { FanRating } from '@doughboys-app/shared';
-import {
-  chainRatingsQueryOptions,
-  meQueryOptions,
-  menuQueryOptions,
-  myRatingsQueryOptions,
-} from '@/api/queries';
+import { chainRatingsQueryOptions, meQueryOptions, myRatingsQueryOptions } from '@/api/queries';
 import { useFan } from '@/auth/fan';
 import { ForkScore } from '@/components/ForkScore';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatDate } from '@/lib/format';
@@ -36,15 +30,6 @@ function Review({ rating }: { rating: FanRating }) {
         <ForkScore value={rating.forks} />
       </header>
       {rating.review && <p className="text-sm whitespace-pre-line">{rating.review}</p>}
-      {rating.ordered.length > 0 && (
-        <ul aria-label="Ordered" className="flex flex-wrap gap-1">
-          {rating.ordered.map((item) => (
-            <li key={item}>
-              <Badge variant="secondary">{item}</Badge>
-            </li>
-          ))}
-        </ul>
-      )}
     </article>
   );
 }
@@ -57,7 +42,6 @@ function RateIt({ slug, chainName }: { slug: string; chainName: string }) {
   const [editing, setEditing] = useState(false);
   const me = useQuery({ ...meQueryOptions(api), enabled: signedIn });
   const mine = useQuery({ ...myRatingsQueryOptions(api), enabled: signedIn });
-  const menu = useQuery({ ...menuQueryOptions(api, slug), enabled: signedIn && editing });
   const existing = mine.data?.find((r) => r.chain === slug);
 
   if (fan.status === 'loading') return null;
@@ -82,7 +66,6 @@ function RateIt({ slug, chainName }: { slug: string; chainName: string }) {
       <RatingForm
         slug={slug}
         chainName={chainName}
-        menu={menu.data ?? []}
         existing={existing}
         onDone={() => setEditing(false)}
       />

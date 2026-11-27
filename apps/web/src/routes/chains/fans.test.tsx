@@ -58,13 +58,14 @@ describe('rating a chain', () => {
     expect(db.displayName).toBe('xylophone fan');
   });
 
-  it('saves forks, order, location and review', async () => {
+  it('saves forks, location and review, with no order picker', async () => {
     seedTacoBell();
     db.displayName = 'Spoon Fan';
     renderApp(page);
 
     await userEvent.click(await screen.findByRole('button', { name: 'Rate it' }));
     const form = screen.getByRole('form', { name: 'Rate Taco Bell' });
+    expect(within(form).queryByText('What did you order?')).not.toBeInTheDocument();
 
     // 3 forks by default; one step right is 3.5.
     const slider = within(form).getByRole('slider');
@@ -72,34 +73,13 @@ describe('rating a chain', () => {
     await userEvent.keyboard('{ArrowRight}');
     expect(within(form).getByText('3.5')).toBeInTheDocument();
 
-    // The menu comes from what the boys ordered, most ordered first.
-    const suggestions = await within(form).findByRole('group', { name: 'Menu suggestions' });
-    expect(
-      within(suggestions)
-        .getAllByRole('button')
-        .map((b) => b.textContent),
-    ).toEqual(['Crunchwrap Supreme', 'Baja Blast']);
-    await userEvent.click(within(suggestions).getByRole('button', { name: 'Crunchwrap Supreme' }));
-    await userEvent.type(
-      within(form).getByLabelText('Search the menu'),
-      'Doritos Locos Taco{Enter}',
-    );
-    expect(within(form).getByRole('list', { name: 'Your order' })).toHaveTextContent(
-      'Crunchwrap SupremeDoritos Locos Taco',
-    );
-
     await userEvent.type(within(form).getByLabelText('Where? (optional)'), 'Burbank, CA');
     await userEvent.type(within(form).getByLabelText('Your review (optional)'), 'Live más.');
     await userEvent.click(within(form).getByRole('button', { name: 'Save rating' }));
 
     expect(await screen.findByText('Thanks for rating Taco Bell!')).toBeInTheDocument();
     expect(db.ratingRequests).toEqual([
-      {
-        forks: 3.5,
-        ordered: ['Crunchwrap Supreme', 'Doritos Locos Taco'],
-        location: 'Burbank, CA',
-        review: 'Live más.',
-      },
+      { forks: 3.5, location: 'Burbank, CA', review: 'Live más.' },
     ]);
     const reviews = await screen.findByRole('list', { name: 'Fan reviews' });
     expect(reviews).toHaveTextContent('Spoon Fan');
@@ -115,7 +95,6 @@ describe('rating a chain', () => {
       owner: 'me',
       displayName: 'Spoon Fan',
       forks: 2,
-      ordered: [],
       updatedAt: '2026-12-01T00:00:00Z',
     });
     renderApp(page);
@@ -188,7 +167,6 @@ describe('account page', () => {
       owner: 'me',
       displayName: 'Spoon Fan',
       forks: 4,
-      ordered: [],
       updatedAt: '2026-12-01T00:00:00Z',
     });
     renderApp('/me');

@@ -67,12 +67,11 @@ hidden. Unlabelled chains are shown. Hand corrections go in `apps/api/src/chains
 
 - **Sign-in** (ADR 0009): Cognito's managed login (passwords or passkeys) with the code
   flow + PKCE. `apps/web/src/auth` exposes `useFan()`; signing in is optional.
-- **Routes** (`apps/api/src/routes/fans.ts`): public `GET /api/chains/:slug/ratings` and
-  `/menu`; signed-in `GET|PUT|DELETE /api/me`, `GET /api/me/ratings` and
+- **Routes** (`apps/api/src/routes/fans.ts`): public `GET /api/chains/:slug/ratings`; signed-in `GET|PUT|DELETE /api/me`, `GET /api/me/ratings` and
   `PUT|DELETE /api/chains/:slug/rating`, checked by API Gateway's JWT authorizer and again
   by `requireUser`.
 - **Data** (ADR 0010): `Ratings` keyed by (chain, userId) with a `byUser` index; `Profiles`
-  keyed by userId. The audience score (shown from 3 ratings) and menu are computed on read.
+  keyed by userId. The audience score (shown from 3 ratings) is computed on read.
 - Locally there's no Cognito: the web app acts as a "local dev" fan and the API keeps fans'
   data in memory.
 

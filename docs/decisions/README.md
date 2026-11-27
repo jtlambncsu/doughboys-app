@@ -18,3 +18,4 @@ New decision? Copy [`0000-template.md`](0000-template.md) to the next number.
 | [0008](0008-podcast-feed-for-new-episodes.md)       | New episodes from the podcast feed; daily import                |
 | [0009](0009-fan-accounts-cognito.md)                | Fan accounts: Cognito managed login, passwords and passkeys     |
 | [0010](0010-community-ratings.md)                   | Community ratings: one per fan per chain, audience score from 3 |
+| [0011](0011-drop-orders-from-fan-ratings.md)        | Drop "what I ordered" from fan ratings                          |

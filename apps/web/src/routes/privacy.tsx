@@ -19,7 +19,7 @@ function Privacy() {
           anyone.
         </li>
         <li>
-          <strong>What’s public:</strong> your display name, and your ratings, reviews, orders and
+          <strong>What’s public:</strong> your display name, and your ratings, reviews and
           locations.
         </li>
         <li>

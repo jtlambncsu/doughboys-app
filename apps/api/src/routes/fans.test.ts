@@ -132,7 +132,7 @@ describe('rating a chain', () => {
     now = new Date('2026-12-02T12:00:00Z');
     await rate('alice', 'taco-bell', {
       forks: 4.5,
-      ordered: ['Crunchwrap Supreme'],
+      ordered: ['Crunchwrap Supreme'], // retired field: ignored, not stored
       location: 'Burbank, CA',
     }).expect(200);
 
@@ -144,6 +144,7 @@ describe('rating a chain', () => {
       updatedAt: '2026-12-02T12:00:00.000Z',
     });
     expect(all[0]).not.toHaveProperty('review'); // replaced, not merged
+    expect(all[0]).not.toHaveProperty('ordered');
   });
 
   it('takes the fan from the token, never from the request', async () => {
@@ -206,22 +207,6 @@ describe('public ratings', () => {
   });
 });
 
-describe('menu', () => {
-  it('combines what the Doughboys and fans ordered, most ordered first', async () => {
-    await signUp('a', 'Fan A');
-    await rate('a', 'taco-bell', {
-      forks: 4,
-      ordered: ['Crunchwrap Supreme', 'Cheesy Gordita Crunch'],
-    }).expect(200);
-    const res = await request(app).get('/api/chains/taco-bell/menu').expect(200);
-    expect(res.body).toEqual([
-      { name: 'Crunchwrap Supreme', count: 3 },
-      { name: 'Baja Blast', count: 1 },
-      { name: 'Cheesy Gordita Crunch', count: 1 },
-    ]);
-  });
-});
-
 describe('my ratings', () => {
   it('lists only my ratings, with chain names', async () => {
     await signUp('alice', 'Alice');
@@ -250,5 +235,19 @@ describe('deleting an account', () => {
     expect(accounts.deleted).toEqual(['alice']);
     expect(await ratings.forUser('bob')).toHaveLength(1);
     expect(await profiles.get('bob')).toBeDefined();
+  });
+
+  it('doesn’t show order lists saved before the field was retired', async () => {
+    await ratings.put({
+      chain: 'taco-bell',
+      userId: 'old-fan',
+      displayName: 'Old Fan',
+      forks: 4,
+      ordered: ['Crunchwrap Supreme'],
+      createdAt: '2026-11-27T00:00:00Z',
+      updatedAt: '2026-11-27T00:00:00Z',
+    } as never);
+    const res = await request(app).get('/api/chains/taco-bell/ratings').expect(200);
+    expect(res.body.ratings[0]).not.toHaveProperty('ordered');
   });
 });

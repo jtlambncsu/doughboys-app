@@ -1,7 +1,6 @@
 import { Router, type Response } from 'express';
 import {
   audienceScore,
-  buildMenu,
   displayName as chainDisplayName,
   profileInputSchema,
   ratingInputSchema,
@@ -12,12 +11,10 @@ import {
 } from '@doughboys-app/shared';
 import type { z } from 'zod';
 import type { Catalog } from '../catalog.js';
-import type { EpisodeStore } from '../stores/types.js';
 import { requireUser, type ResolveUser } from '../auth.js';
 import type { AccountDirectory, ProfileStore, RatingStore, StoredRating } from '../fans/types.js';
 
 export interface FansDeps {
-  store: EpisodeStore;
   catalog: Catalog;
   ratings: RatingStore;
   profiles: ProfileStore;
@@ -30,7 +27,6 @@ export interface FansDeps {
 function publicRating({
   displayName,
   forks,
-  ordered,
   review,
   location,
   updatedAt,
@@ -38,7 +34,6 @@ function publicRating({
   return {
     displayName,
     forks,
-    ordered,
     ...(review && { review }),
     ...(location && { location }),
     updatedAt,
@@ -62,7 +57,7 @@ function badRequest(res: Response, error: z.ZodError) {
  * from the request body or URL.
  */
 export function fansRouter(deps: FansDeps) {
-  const { store, catalog, ratings, profiles, accounts, clock } = deps;
+  const { catalog, ratings, profiles, accounts, clock } = deps;
   const router = Router();
   const signedIn = requireUser(deps.resolveUser);
 
@@ -79,24 +74,6 @@ export function fansRouter(deps: FansDeps) {
       ratings: all.map(publicRating).sort(newestFirst),
     };
     res.json(body);
-  });
-
-  // Menu suggestions: what the Doughboys ordered there, plus what fans have logged.
-  router.get('/chains/:slug/menu', async (req, res) => {
-    const visits = await catalog.visits(req.params.slug);
-    if (!visits) {
-      res.status(404).json({ error: 'Chain not found' });
-      return;
-    }
-    const [episodes, fanRatings] = await Promise.all([
-      store.getEpisodes(visits.map((v) => v.slug)),
-      ratings.forChain(req.params.slug),
-    ]);
-    const orders = [
-      ...episodes.flatMap((e) => e.ratings.map((r) => r.ordered)),
-      ...fanRatings.map((r) => r.ordered),
-    ];
-    res.json(buildMenu(orders).slice(0, 200));
   });
 
   // --- Signed in: only ever the caller's own data ---

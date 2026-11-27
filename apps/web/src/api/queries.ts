@@ -27,9 +27,6 @@ export const chainRatingsQueryOptions = (api: DoughboysApi, slug: string) =>
     staleTime: 0,
   });
 
-export const menuQueryOptions = (api: DoughboysApi, slug: string) =>
-  queryOptions({ queryKey: ['menu', slug], queryFn: () => api.menu(slug) });
-
 /** Everything personal lives under 'me', so signing out clears it in one go. */
 export const meQueryOptions = (api: DoughboysApi) =>
   queryOptions({ queryKey: ['me', 'profile'], queryFn: api.me, staleTime: 0 });
@@ -62,7 +59,6 @@ function useRatingChanged() {
     void queryClient.invalidateQueries({ queryKey: ['ratings', 'chain', slug] });
     void queryClient.invalidateQueries({ queryKey: ['me', 'ratings'] });
     void queryClient.invalidateQueries({ queryKey: ['chains'], exact: true });
-    void queryClient.invalidateQueries({ queryKey: ['menu', slug] });
   };
 }
 

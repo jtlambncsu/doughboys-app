@@ -6,7 +6,6 @@ import {
   displayName,
   episodesByChain,
   audienceScore,
-  buildMenu,
   ratingInputSchema,
   type ChainInfo,
   type Episode,
@@ -49,7 +48,6 @@ export const db = {
   /** Another fan's rating, for chain pages and audience scores. */
   addFanRating(chain: string, rating: Partial<FanRating> & { displayName: string; forks: number }) {
     this.fanRatings.push({
-      ordered: [],
       updatedAt: '2026-12-01T00:00:00Z',
       ...rating,
       chain,
@@ -132,17 +130,6 @@ function fanHandlers() {
         audience: audienceScore(ratings.map((r) => r.forks)),
         ratings: ratings.map(publicRating).reverse(),
       });
-    }),
-    http.get('/api/chains/:slug/menu', ({ params }) => {
-      const episodes = [...db.episodes.values()].filter(
-        (e) => e.restaurant && episodesByChain([e]).has(params.slug as string),
-      );
-      return HttpResponse.json(
-        buildMenu([
-          ...episodes.flatMap((e) => e.ratings.map((r) => r.ordered)),
-          ...db.fanRatings.filter((r) => r.chain === params.slug).map((r) => r.ordered),
-        ]),
-      );
     }),
     http.get('/api/me', ({ request }) => {
       if (!signedIn(request)) return unauthorized();

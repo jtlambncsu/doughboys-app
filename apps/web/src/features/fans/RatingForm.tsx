@@ -5,7 +5,6 @@ import { toast } from 'sonner';
 import {
   ratingInputSchema,
   type FanRating,
-  type MenuItem,
   type RatingInput,
   type ValidRating,
 } from '@doughboys-app/shared';
@@ -15,33 +14,29 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { Textarea } from '@/components/ui/textarea';
-import { OrderPicker } from './OrderPicker';
 
 /**
- * Rate a chain: forks (0-5 in halves), what you ordered, where, and a short review.
+ * Rate a chain: forks (0-5 in halves), where, and a short review.
  * Validated with the same Zod schema the API uses, so the rules can't drift apart.
  */
 export function RatingForm({
   slug,
   chainName,
-  menu,
   existing,
   onDone,
 }: {
   slug: string;
   chainName: string;
-  menu: MenuItem[];
   existing?: FanRating;
   onDone: () => void;
 }) {
   const rate = useRate(slug);
   const remove = useDeleteRating(slug);
-  const ids = { forks: useId(), review: useId(), location: useId(), order: useId() };
+  const ids = { forks: useId(), review: useId(), location: useId() };
   const form = useForm<RatingInput, unknown, ValidRating>({
     resolver: zodResolver(ratingInputSchema),
     defaultValues: {
       forks: existing?.forks ?? 3,
-      ordered: existing?.ordered ?? [],
       review: existing?.review ?? '',
       location: existing?.location ?? '',
     },
@@ -98,18 +93,6 @@ export function RatingForm({
           </div>
         )}
       />
-
-      <div className="space-y-2">
-        <Label id={ids.order}>What did you order?</Label>
-        <Controller
-          control={form.control}
-          name="ordered"
-          render={({ field }) => (
-            <OrderPicker menu={menu} value={field.value ?? []} onChange={field.onChange} />
-          )}
-        />
-        {errors.ordered && <p className="text-destructive text-sm">{errors.ordered.message}</p>}
-      </div>
 
       <div className="space-y-2">
         <Label htmlFor={ids.location}>Where? (optional)</Label>

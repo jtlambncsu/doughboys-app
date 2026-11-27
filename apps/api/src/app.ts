@@ -53,7 +53,6 @@ export function createApp({
   app.use(
     '/api',
     fansRouter({
-      store,
       catalog,
       ratings: ratingStore,
       profiles: profileStore,

@@ -1,6 +1,6 @@
 # 0010. Community ratings: one per fan per chain, audience score from 3 ratings
 
-- **Status:** Accepted
+- **Status:** Accepted; ordered items and the menu removed by [0011](0011-drop-orders-from-fan-ratings.md)
 - **Date:** 2026-11-27
 
 ## Context
