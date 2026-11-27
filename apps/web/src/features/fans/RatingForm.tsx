@@ -12,11 +12,11 @@ import { useDeleteRating, useRate } from '@/api/queries';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Slider } from '@/components/ui/slider';
 import { Textarea } from '@/components/ui/textarea';
+import { TinePicker } from './TinePicker';
 
 /**
- * Rate a chain: forks (0-5 in halves), where, and a short review.
+ * Rate a chain: forks and tines (0-5 in quarters), where, and a short review.
  * Validated with the same Zod schema the API uses, so the rules can't drift apart.
  */
 export function RatingForm({
@@ -75,21 +75,8 @@ export function RatingForm({
         name="forks"
         render={({ field }) => (
           <div className="space-y-3">
-            <div className="flex items-baseline justify-between">
-              <Label id={ids.forks}>Your rating</Label>
-              <span className="font-heading text-2xl font-semibold tabular-nums">
-                {field.value}{' '}
-                <span className="text-muted-foreground text-sm font-normal">forks</span>
-              </span>
-            </div>
-            <Slider
-              aria-labelledby={ids.forks}
-              min={0}
-              max={5}
-              step={0.5}
-              value={[field.value]}
-              onValueChange={([value]) => field.onChange(value)}
-            />
+            <Label id={ids.forks}>Your rating</Label>
+            <TinePicker value={field.value} onChange={field.onChange} labelId={ids.forks} />
           </div>
         )}
       />

@@ -2,9 +2,10 @@ import { useState } from 'react';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { tineLabel } from '@doughboys-app/shared';
 import { meQueryOptions, myRatingsQueryOptions, useDeleteAccount } from '@/api/queries';
 import { useFan } from '@/auth/fan';
-import { ForkScore } from '@/components/ForkScore';
+import { ForkTines } from '@/components/ForkTines';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -87,7 +88,10 @@ function Account() {
                       {formatDate(rating.updatedAt.slice(0, 10))}
                     </span>
                   </span>
-                  <ForkScore value={rating.forks} />
+                  <span className="flex flex-col items-end gap-0.5">
+                    <ForkTines value={rating.forks} size={16} />
+                    <span className="text-muted-foreground text-xs">{tineLabel(rating.forks)}</span>
+                  </span>
                 </Link>
               </li>
             ))}

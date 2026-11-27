@@ -67,11 +67,12 @@ describe('rating a chain', () => {
     const form = screen.getByRole('form', { name: 'Rate Taco Bell' });
     expect(within(form).queryByText('What did you order?')).not.toBeInTheDocument();
 
-    // 3 forks by default; one step right is 3.5.
+    // 3 forks by default; one step right is one tine more.
     const slider = within(form).getByRole('slider');
     act(() => slider.focus());
     await userEvent.keyboard('{ArrowRight}');
-    expect(within(form).getByText('3.5')).toBeInTheDocument();
+    expect(within(form).getByText('3 forks, 1 tine')).toBeInTheDocument();
+    expect(within(form).getByRole('img', { name: '3 forks, 1 tine' })).toBeInTheDocument();
 
     await userEvent.type(within(form).getByLabelText('Where? (optional)'), 'Burbank, CA');
     await userEvent.type(within(form).getByLabelText('Your review (optional)'), 'Live más.');
@@ -79,12 +80,37 @@ describe('rating a chain', () => {
 
     expect(await screen.findByText('Thanks for rating Taco Bell!')).toBeInTheDocument();
     expect(db.ratingRequests).toEqual([
-      { forks: 3.5, location: 'Burbank, CA', review: 'Live más.' },
+      { forks: 3.25, location: 'Burbank, CA', review: 'Live más.' },
     ]);
     const reviews = await screen.findByRole('list', { name: 'Fan reviews' });
     expect(reviews).toHaveTextContent('Spoon Fan');
     expect(reviews).toHaveTextContent('Live más.');
-    expect(await screen.findByText(/You gave it/)).toHaveTextContent('You gave it 3.5 forks.');
+    expect(await screen.findByText(/You gave it/)).toHaveTextContent(
+      'You gave it 3 forks, 1 tine.',
+    );
+    expect(within(reviews).getByRole('img', { name: '3 forks, 1 tine' })).toBeInTheDocument();
+  });
+
+  it('picks tines with the ± buttons and whole forks by tapping a fork', async () => {
+    seedTacoBell();
+    db.displayName = 'Spoon Fan';
+    renderApp(page);
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Rate it' }));
+    const form = screen.getByRole('form', { name: 'Rate Taco Bell' });
+
+    await userEvent.click(within(form).getByRole('button', { name: '5 forks' }));
+    expect(within(form).getByText('5 forks')).toBeInTheDocument();
+    expect(within(form).getByRole('button', { name: 'One tine more' })).toBeDisabled();
+
+    await userEvent.click(within(form).getByRole('button', { name: 'One tine less' }));
+    await userEvent.click(within(form).getByRole('button', { name: 'One tine less' }));
+    await userEvent.click(within(form).getByRole('button', { name: 'One tine less' }));
+    expect(within(form).getByText('4 forks, 1 tine')).toBeInTheDocument();
+
+    await userEvent.click(within(form).getByRole('button', { name: 'Save rating' }));
+    await screen.findAllByText('Thanks for rating Taco Bell!');
+    expect(db.ratingRequests[0]).toEqual({ forks: 4.25 });
   });
 
   it('edits and deletes your rating', async () => {

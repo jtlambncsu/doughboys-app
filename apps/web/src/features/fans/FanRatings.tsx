@@ -2,10 +2,10 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useRouteContext } from '@tanstack/react-router';
 import { MapPin } from 'lucide-react';
-import type { FanRating } from '@doughboys-app/shared';
+import { tineLabel, type FanRating } from '@doughboys-app/shared';
 import { chainRatingsQueryOptions, meQueryOptions, myRatingsQueryOptions } from '@/api/queries';
 import { useFan } from '@/auth/fan';
-import { ForkScore } from '@/components/ForkScore';
+import { ForkTines } from '@/components/ForkTines';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatDate } from '@/lib/format';
@@ -27,7 +27,10 @@ function Review({ rating }: { rating: FanRating }) {
             )}
           </div>
         </div>
-        <ForkScore value={rating.forks} />
+        <div className="flex shrink-0 flex-col items-end gap-0.5">
+          <ForkTines value={rating.forks} size={18} />
+          <span className="text-muted-foreground text-xs">{tineLabel(rating.forks)}</span>
+        </div>
       </header>
       {rating.review && <p className="text-sm whitespace-pre-line">{rating.review}</p>}
     </article>
@@ -76,7 +79,7 @@ function RateIt({ slug, chainName }: { slug: string; chainName: string }) {
       <p className="text-sm">
         {existing ? (
           <>
-            You gave it <strong>{existing.forks} forks</strong>.
+            You gave it <strong>{tineLabel(existing.forks)}</strong>.
           </>
         ) : (
           `Been to ${chainName}? Add your fork rating.`

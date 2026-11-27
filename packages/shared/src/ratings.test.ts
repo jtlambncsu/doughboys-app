@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { audienceScore, displayNameSchema, ratingInputSchema } from './ratings.js';
+import {
+  audienceScore,
+  displayNameSchema,
+  forksAndTines,
+  ratingInputSchema,
+  tineLabel,
+} from './ratings.js';
 
 describe('ratingInputSchema', () => {
   it('accepts half forks and trims text, treating blanks as missing', () => {
@@ -12,7 +18,11 @@ describe('ratingInputSchema', () => {
     ).toEqual({ forks: 3.5, review: 'Great!' });
   });
 
-  it.each([[5.5], [-1], [3.3], [Number.NaN]])('rejects %d forks', (forks) => {
+  it.each([[3.25], [3.5], [4.75], [0], [5]])('accepts %d forks (whole tines)', (forks) => {
+    expect(ratingInputSchema.safeParse({ forks }).success).toBe(true);
+  });
+
+  it.each([[5.25], [-0.25], [3.3], [3.1], [Number.NaN]])('rejects %d forks', (forks) => {
     expect(ratingInputSchema.safeParse({ forks }).success).toBe(false);
   });
 
@@ -44,5 +54,20 @@ describe('audienceScore', () => {
   it('hides the average until three fans have rated', () => {
     expect(audienceScore([5, 4])).toEqual({ average: null, count: 2 });
     expect(audienceScore([5, 4, 3.5])).toEqual({ average: 4.17, count: 3 });
+  });
+});
+
+describe('tines', () => {
+  it.each([
+    [3.25, { forks: 3, tines: 1 }, '3 forks, 1 tine'],
+    [3.5, { forks: 3, tines: 2 }, '3 forks, 2 tines'],
+    [4.75, { forks: 4, tines: 3 }, '4 forks, 3 tines'],
+    [1, { forks: 1, tines: 0 }, '1 fork'],
+    [0.25, { forks: 0, tines: 1 }, '1 tine'],
+    [0, { forks: 0, tines: 0 }, '0 forks'],
+    [3.83, { forks: 3, tines: 3 }, '3 forks, 3 tines'], // averages round to the nearest tine
+  ])('%d is %o, "%s"', (value, parts, label) => {
+    expect(forksAndTines(value)).toEqual(parts);
+    expect(tineLabel(value)).toBe(label);
   });
 });
