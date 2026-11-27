@@ -53,6 +53,10 @@ describe('DynamoEpisodeStore', () => {
 
     const list = await store.listEpisodes();
 
+    const input = ddb.commandCalls(ScanCommand)[0]!.args[0].input;
+    expect(Object.values(input.ExpressionAttributeNames!)).toContain('number');
+    expect(Object.values(input.ExpressionAttributeNames!)).not.toContain('details');
+
     expect(list.map((e) => e.slug)).toEqual(['new', 'old']);
     expect(list[0]).not.toHaveProperty('ratings');
   });

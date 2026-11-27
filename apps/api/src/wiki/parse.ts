@@ -4,6 +4,8 @@ import {
   parseForks,
   seriesFor,
   type Episode,
+  type EpisodeDetails,
+  type Quote,
   type Rating,
 } from '@doughboys-app/shared';
 
@@ -73,6 +75,73 @@ function parseRatingRows(rows: Row[]): Rating[] {
   return ratings;
 }
 
+type Doc = ReturnType<typeof wtf>;
+type Section = ReturnType<Doc['sections']>[number];
+
+/** Plain text with paragraphs kept (blank lines), trimmed; undefined when empty. */
+function paragraphs(section: Section | undefined): string | undefined {
+  const text = section
+    ?.text({})
+    .split(/\n\s*\n/)
+    // Collapse spacing, and drop leftover ''italic'' / '''bold''' markup.
+    .map((p) => p.replace(/'{2,}/g, '').replace(/\s+/g, ' ').trim())
+    .filter(Boolean)
+    .join('\n\n');
+  return text || undefined;
+}
+
+/** Every {{Quote|text|author}} in a section. */
+function quotes(section: Section | undefined): Quote[] {
+  if (!section) return [];
+  return (section.templates() as { json(): Record<string, string | undefined> }[])
+    .map((t) => t.json())
+    .filter((t) => t.template === 'quote' && t.text?.trim())
+    .map((t) => ({
+      text: t
+        .text!.replace(/'{2,}/g, '')
+        .replace(/[ \t]+\n/g, '\n')
+        .trim(),
+      ...(t.author?.trim() && { author: t.author.trim() }),
+    }));
+}
+
+/**
+ * The rest of the page: synopsis, Nick's intro, quotes, roasts, Snack or Wack and related
+ * episodes. Section names vary a little between eras, so they're matched loosely.
+ */
+export function parseDetails(doc: Doc, title: string): EpisodeDetails {
+  const sections = doc.sections();
+  const find = (pattern: RegExp) => sections.find((s) => pattern.test(s.title().trim()));
+
+  // The segment's description opens with the same boilerplate every time; skip it.
+  const snack = paragraphs(find(/^snack or wack/i))
+    ?.split('\n\n')
+    .filter((p) => !/^In Snack or Wack,/i.test(p))
+    .join('\n\n');
+
+  const self = normalizeTitle(title);
+  const related = [
+    ...new Set(
+      // wtf_wikipedia types links loosely; at runtime it's an array of Link.
+      ((find(/^related episodes?$/i)?.links() ?? []) as { page(): string | undefined }[])
+        .map((link) => link.page())
+        .filter((page): page is string => Boolean(page))
+        .map(normalizeTitle),
+    ),
+  ].filter((page) => page !== self);
+
+  const synopsis = paragraphs(find(/^synopsis$/i));
+  const intro = paragraphs(find(/^nick'?s intro/i));
+  return {
+    ...(synopsis && { synopsis }),
+    ...(intro && { intro }),
+    quotes: quotes(find(/^quotes$/i)),
+    roasts: quotes(find(/^roasts? (mitchy 2 )?spoon/i)),
+    ...(snack && { snackOrWack: snack }),
+    related,
+  };
+}
+
 /**
  * Turns one episode page's wikitext into an Episode. Returns undefined for pages without an
  * episode infobox. The restaurant comes from the Restaurants list, not the episode page.
@@ -102,6 +171,7 @@ export function parseEpisodePage(title: string, wikitext: string): Episode | und
     ratings,
     averageForks: averageForks(ratings),
     wikiUrl: wikiUrl(title),
+    details: parseDetails(doc, title),
   };
 }
 

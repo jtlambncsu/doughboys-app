@@ -108,3 +108,50 @@ describe('toIsoDate', () => {
     expect(toIsoDate('TBA')).toBeUndefined();
   });
 });
+
+describe('parseDetails', () => {
+  const episode = parseEpisodePage(
+    'Alamo Drafthouse with Drew McWeeny',
+    fixture('alamo-drafthouse.wiki'),
+  )!;
+  const details = episode.details!;
+
+  it('reads the synopsis and Nick’s intro as paragraphs', () => {
+    expect(details.synopsis).toMatch(/^Drew McWeeny .* joins the 'boys/);
+    expect(details.intro).toMatch(/^In 1946, amidst the American occupation/);
+    expect(details.intro).toContain('\n\n');
+  });
+
+  it('reads quotes and roasts with their authors', () => {
+    expect(details.quotes[0]).toEqual({
+      text: 'As a projectionist, was there ever a time when the Gremlins tried to take over the projection?',
+      author: 'Mike Mitchell re: Drew working in a movie theater',
+    });
+    expect(details.quotes.length).toBeGreaterThan(1);
+    expect(details.roasts).toEqual([
+      { text: "A Man Who CC's Pizza On Every E-mail", author: 'Jeffrey' },
+    ]);
+  });
+
+  it('describes the Snack or Wack without the segment’s boilerplate', () => {
+    expect(details.snackOrWack).toMatch(/^For this episode, they try the "Tom Cruise Cake,"/);
+  });
+
+  it('lists related episodes, without the episode itself', () => {
+    expect(details.related).toContain('Buca di Beppo with Drew McWeeny');
+    expect(details.related).not.toContain('Alamo Drafthouse with Drew McWeeny');
+  });
+
+  it('leaves out sections a page doesn’t have', () => {
+    const minimal = parseEpisodePage('x', '{{InfoboxEp|ep_number=1}}')!.details;
+    expect(minimal).toEqual({ quotes: [], roasts: [], related: [] });
+  });
+
+  it('drops leftover italic and bold markup', () => {
+    const text =
+      "{{InfoboxEp|ep_number=1}}\n== Synopsis ==\nA ''great'' and '''bold''' show.\n== Quotes ==\n{{Quote|It's ''so'' good.|Mitch}}";
+    const parsed = parseEpisodePage('x', text)!.details!;
+    expect(parsed.synopsis).toBe('A great and bold show.');
+    expect(parsed.quotes).toEqual([{ text: "It's so good.", author: 'Mitch' }]);
+  });
+});

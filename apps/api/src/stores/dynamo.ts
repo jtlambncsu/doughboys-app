@@ -38,8 +38,28 @@ export class DynamoEpisodeStore implements EpisodeStore {
 
   async listEpisodes() {
     // About a thousand items, so a full scan is fine; it's cached by the route.
+    // Read only the list fields, not ratings or page details (most of each item's size).
+    const fields = [
+      'slug',
+      'title',
+      'number',
+      'series',
+      'releaseDate',
+      'restaurant',
+      'guests',
+      'averageForks',
+      'wikiUrl',
+    ];
     const episodes: Episode[] = [];
-    for await (const page of paginateScan({ client: this.client }, { TableName: this.tableName })) {
+    for await (const page of paginateScan(
+      { client: this.client },
+      {
+        TableName: this.tableName,
+        ProjectionExpression: fields.map((_, i) => `#f${i}`).join(', '),
+        // Placeholders, because some field names (like "number") are DynamoDB reserved words.
+        ExpressionAttributeNames: Object.fromEntries(fields.map((f, i) => [`#f${i}`, f])),
+      },
+    )) {
       episodes.push(...((page.Items ?? []) as Episode[]));
     }
     return episodes.map(toSummary).sort(newestFirst);

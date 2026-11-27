@@ -35,7 +35,7 @@ export const db = {
   },
   summaries() {
     return [...this.episodes.values()]
-      .map(({ ratings: _ratings, ...summary }) => summary)
+      .map(({ ratings: _ratings, details: _details, ...summary }) => summary)
       .sort((a, b) => (b.releaseDate ?? '').localeCompare(a.releaseDate ?? ''));
   },
 };

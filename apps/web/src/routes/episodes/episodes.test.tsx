@@ -72,3 +72,52 @@ describe('episode to chain', () => {
     expect(await screen.findByRole('heading', { name: 'IHOP', level: 1 })).toBeInTheDocument();
   });
 });
+
+describe('episode page extras', () => {
+  const ihop = `/episodes/${encodeURIComponent('IHOP with Alison Agosti')}`;
+
+  it('shows the synopsis and the Snack or Wack', async () => {
+    seedEpisodes();
+    renderApp(ihop);
+
+    expect(await screen.findByText(/welcome guest Alison Agosti/)).toBeInTheDocument();
+    expect(screen.getByText('They play Snack or Wack.')).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'Snack or Wack' })).toHaveTextContent('SweeTarts');
+  });
+
+  it('shows three quotes, then all of them on request', async () => {
+    seedEpisodes();
+    renderApp(ihop);
+
+    const quotes = await screen.findByRole('region', { name: 'Quotes' });
+    expect(within(quotes).getAllByRole('figure')).toHaveLength(3);
+    expect(within(quotes).getByText('“Mitch: Tip twenty percent.”')).toBeInTheDocument();
+    expect(within(quotes).getByText('— Mike Mitchell')).toBeInTheDocument();
+
+    await userEvent.click(within(quotes).getByRole('button', { name: 'Show all 4 quotes' }));
+    expect(within(quotes).getAllByRole('figure')).toHaveLength(4);
+  });
+
+  it('keeps Nick’s intro folded until opened', async () => {
+    seedEpisodes();
+    renderApp(ihop);
+
+    const trigger = await screen.findByRole('button', { name: 'Nick’s intro' });
+    expect(screen.queryByText('The year was 1958.')).not.toBeInTheDocument();
+    await userEvent.click(trigger);
+    expect(screen.getByText('The year was 1958.')).toBeInTheDocument();
+  });
+
+  it('shows roasts and links related episodes', async () => {
+    seedEpisodes();
+    renderApp(ihop);
+
+    expect(await screen.findByRole('region', { name: 'Roast Spoonman' })).toHaveTextContent(
+      'A walking syrup spill',
+    );
+    await userEvent.click(screen.getByRole('link', { name: 'Taco Bell with Jack Allison' }));
+    expect(
+      await screen.findByRole('heading', { name: 'Taco Bell with Jack Allison', level: 1 }),
+    ).toBeInTheDocument();
+  });
+});

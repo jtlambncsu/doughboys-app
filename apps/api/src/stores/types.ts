@@ -11,7 +11,11 @@ export interface EpisodeStore {
   getEpisodes(slugs: string[]): Promise<Episode[]>;
 }
 
-export function toSummary({ ratings: _ratings, ...summary }: Episode): EpisodeSummary {
+export function toSummary({
+  ratings: _ratings,
+  details: _details,
+  ...summary
+}: Episode): EpisodeSummary {
   return summary;
 }
 

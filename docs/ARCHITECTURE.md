@@ -44,6 +44,15 @@ See `packages/shared/src/episode.ts`. Notable fields:
 - `averageForks`: the wiki's figure from its Restaurants list when there is one, else the
   mean of 0-5 ratings. Can exceed 5 (the wiki's averages include bonus scores).
 
+## Episode details
+
+Besides the infobox and ratings, the parser keeps the rest of each wiki page in
+`episode.details` (`parseDetails` in `apps/api/src/wiki/parse.ts`): the synopsis, Nick's
+intro, quotes and Roast Spoonman roasts (both from `{{Quote|text|who}}` templates, which every
+page uses), the Snack or Wack description, and related episodes (kept only when they're
+episodes we have). Details appear only on single-episode responses: lists and the DynamoDB
+scan behind them read only the list fields (`ProjectionExpression`).
+
 ## Chains
 
 The import labels each new chain with Claude (ADR 0005): `restaurant`, `grocery`,

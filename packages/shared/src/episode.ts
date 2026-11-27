@@ -14,6 +14,25 @@ export const ratingSchema = z.object({
 export type Rating = z.infer<typeof ratingSchema>;
 
 /** Main show, the Doughboys Double premium feed, or anything else (specials, live shows). */
+/** A quote, with who said it (or the context the wiki gives). */
+export const quoteSchema = z.object({ text: z.string(), author: z.string().optional() });
+export type Quote = z.infer<typeof quoteSchema>;
+
+/** The rest of an episode's wiki page. Only on full episodes, not in lists. */
+export const episodeDetailsSchema = z.object({
+  synopsis: z.string().optional(),
+  /** Nick's researched history of the chain that opens most episodes. */
+  intro: z.string().optional(),
+  quotes: z.array(quoteSchema),
+  /** "Roast Spoonman": listeners' roasts of Mitch, the self-appointed Spoonman. */
+  roasts: z.array(quoteSchema),
+  /** What they tried in the Snack or Wack segment. */
+  snackOrWack: z.string().optional(),
+  /** Slugs of related episodes that exist in our data. */
+  related: z.array(z.string()),
+});
+export type EpisodeDetails = z.infer<typeof episodeDetailsSchema>;
+
 export const seriesSchema = z.enum(['main', 'double', 'other']);
 export type Series = z.infer<typeof seriesSchema>;
 
@@ -36,11 +55,12 @@ export const episodeSchema = z.object({
    */
   averageForks: z.number().optional(),
   wikiUrl: z.url(),
+  details: episodeDetailsSchema.optional(),
 });
 export type Episode = z.infer<typeof episodeSchema>;
 
-/** A list item: everything except the per-person orders, to keep the list response small. */
-export type EpisodeSummary = Omit<Episode, 'ratings'>;
+/** A list item: no per-person orders or page details, to keep the list response small. */
+export type EpisodeSummary = Omit<Episode, 'ratings' | 'details'>;
 
 /** One row of the leaderboard. */
 /** What kind of place a "restaurant" from the wiki is. Some reviews aren't of restaurants. */

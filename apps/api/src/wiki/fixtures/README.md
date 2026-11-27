@@ -6,3 +6,5 @@ fixtures for the parser. Wiki content is licensed under
 - `als-beef.wiki`: "Al's Beef with Megan Batoon & Amir Blumenfeld (LIVE)" (a table with a
   `rowspan`, which shifts the columns)
 - `restaurants.wiki`: the first rows of the "Restaurants" list
+- `alamo-drafthouse.wiki`: "Alamo Drafthouse with Drew McWeeny" (every page section: synopsis,
+  Nick's intro, Snack or Wack, Roast Spoonman, quotes, related episodes)

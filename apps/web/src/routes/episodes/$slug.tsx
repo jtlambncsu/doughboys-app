@@ -3,6 +3,7 @@ import { useSuspenseQuery } from '@tanstack/react-query';
 import { ArrowLeft, ExternalLink } from 'lucide-react';
 import { chainSlug } from '@doughboys-app/shared';
 import { episodeQueryOptions } from '@/api/queries';
+import { EpisodeExtras, Paragraphs } from '@/features/episodes/EpisodeDetails';
 import { ForkScore } from '@/components/ForkScore';
 import { ListSkeleton } from '@/components/ListSkeleton';
 import { Badge } from '@/components/ui/badge';
@@ -53,6 +54,10 @@ function EpisodePage() {
         )}
       </header>
 
+      {episode.details?.synopsis && (
+        <Paragraphs text={episode.details.synopsis} className="leading-relaxed" />
+      )}
+
       {episode.ratings.length > 0 ? (
         <section aria-label="Ratings" className="grid gap-3 sm:grid-cols-2">
           {episode.ratings.map((rating) => (
@@ -80,6 +85,8 @@ function EpisodePage() {
       ) : (
         <p className="text-muted-foreground">The wiki has no ratings for this episode yet.</p>
       )}
+
+      {episode.details && <EpisodeExtras details={episode.details} />}
 
       <a
         href={episode.wikiUrl}

@@ -53,6 +53,14 @@ export async function importFromWiki(
     });
   }
 
+  // Related links can point at pages that aren't episodes (or don't exist); drop those.
+  const known = new Set(episodes.map((e) => e.slug));
+  for (const episode of episodes) {
+    if (episode.details) {
+      episode.details.related = episode.details.related.filter((slug) => known.has(slug));
+    }
+  }
+
   await store.putEpisodes(episodes);
   const classification = chains ? await classifyNewChains(episodes, chains) : { classified: 0 };
   return {
