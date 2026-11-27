@@ -91,6 +91,15 @@ describe('parseRestaurantsPage', () => {
     });
     expect(map.get('The Beer Store with Norm Sousa')).toEqual({ restaurant: 'A&W Canada' });
   });
+
+  it('normalizes non-breaking spaces in names', () => {
+    const wikitext =
+      '{|\n!Restaurant\n!Rating\n!Release Date\n!Episode\n!notes\n|-\n|Sweetfin\u00a0Poké\n|4.00\n|May 1, 2019\n|[[Sweetfin Poké with Someone|200]]\n|\n|}';
+    expect(parseRestaurantsPage(wikitext).get('Sweetfin Poké with Someone')).toEqual({
+      restaurant: 'Sweetfin Poké',
+      rating: 4,
+    });
+  });
 });
 
 describe('toIsoDate', () => {

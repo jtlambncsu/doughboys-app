@@ -104,6 +104,12 @@ export class ClaudeChainClassifier implements ChainClassifier {
     }
     // Keep only names we asked about, so a misspelled echo can't create a phantom chain.
     const asked = new Set(batch.map((chain) => chain.name));
+    const answered = new Set(output.chains.map((chain) => chain.name));
+    const missing = [...asked].filter((name) => !answered.has(name));
+    if (missing.length) {
+      // They'll be asked about again on the next import.
+      console.warn(`Claude returned no match for: ${missing.join(', ')}`);
+    }
     return output.chains
       .filter((chain) => asked.has(chain.name))
       .map((chain) => ({ ...chain, domain: cleanDomain(chain.domain) }));

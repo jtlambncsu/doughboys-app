@@ -5,7 +5,7 @@ import { db } from '@/test/server';
 import { seedEpisodes } from '@/test/fixtures';
 import { renderApp } from '@/test/renderApp';
 
-/** Five chains: four restaurants (one visited three times) and a grocery store. */
+/** Five chains: four restaurants (one visited three times) and a frozen pizza. */
 function seedBoard() {
   const add = (restaurant: string, forks: number, n = 1) => {
     for (let i = 0; i < n; i++) {
@@ -19,13 +19,13 @@ function seedBoard() {
   };
   add('Zankou Chicken', 5.67);
   add('Taco Bell', 4, 3);
-  add('Albertsons', 4.5);
+  add('Tombstone Pizza', 4.5);
   add('IHOP', 3.83);
   add('Arby’s', 2);
-  db.chains.set('Albertsons', {
-    name: 'Albertsons',
-    category: 'grocery',
-    domain: 'albertsons.com',
+  db.chains.set('Tombstone Pizza', {
+    name: 'Tombstone Pizza',
+    category: 'packaged_food',
+    domain: 'tombstonepizza.com',
   });
   db.chains.set('Taco Bell', { name: 'Taco Bell', category: 'restaurant', domain: 'tacobell.com' });
 }
@@ -44,7 +44,7 @@ describe('leaderboard', () => {
     expect(names(podium)).toEqual(['Zankou Chicken', 'Taco Bell', 'IHOP']);
     expect(within(podium).getByLabelText('Rank 1')).toHaveTextContent('🥇');
     expect(names(screen.getByRole('list', { name: 'Chains' }))).toEqual(['Arby’s']);
-    expect(screen.queryByText('Albertsons')).not.toBeInTheDocument();
+    expect(screen.queryByText('Tombstone Pizza')).not.toBeInTheDocument();
   });
 
   it('shows how many times each chain was visited, and can sort by it', async () => {
@@ -67,7 +67,7 @@ describe('leaderboard', () => {
 
     expect(names(screen.getByRole('list', { name: 'Top three' }))).toEqual([
       'Zankou Chicken',
-      'Albertsons',
+      'Tombstone Pizza',
       'Taco Bell',
     ]);
     expect(router.state.location.search).toEqual({ show: 'all' });

@@ -86,3 +86,18 @@ and fails with a message saying exactly which value is wrong and what shape it n
 
 **Takeaway:** validate configuration at the edge, as early as possible, especially values a
 human types into a settings page.
+
+## The one chain Claude "skipped"
+
+**Symptom:** after the first classification run, 392 of 393 chains had a category. Sweetfin
+Poké had none, and the import reported no error.
+
+**Cause:** the wiki writes that name with a non-breaking space (U+00A0). Claude's answer
+used a normal space, and the classifier drops any name it didn't ask about (a guard against
+made-up entries), so the answer was discarded silently.
+
+**Fix:** collapse all whitespace in restaurant names when parsing the wiki, so stored names
+are plain text. The next import sees "Sweetfin Poké" as a new chain and classifies it.
+
+**Takeaway:** a strict equality check across a system boundary needs both sides
+normalized, and "silently dropped" deserves a log line.

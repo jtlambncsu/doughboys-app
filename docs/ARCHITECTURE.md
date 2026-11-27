@@ -44,6 +44,14 @@ See `packages/shared/src/episode.ts`. Notable fields:
 - `averageForks`: the wiki's figure from its Restaurants list when there is one, else the
   mean of 0-5 ratings. Can exceed 5 (the wiki's averages include bonus scores).
 
+## Chains
+
+The import labels each new chain with Claude (ADR 0005): `restaurant`, `grocery`,
+`packaged_food`, `produce`, `drink` or `other`, plus its website for the logo (ADR 0006).
+The leaderboard's **Restaurants** view means anywhere they went to eat, so grocery stores,
+gas stations and one-offs count; only products (`packaged_food`, `produce`, `drink`) are
+hidden. Unlabelled chains are shown. Hand corrections go in `apps/api/src/chains/overrides.ts`.
+
 ## Local development
 
 With no `EPISODES_TABLE` set, the API uses an in-memory store loaded from

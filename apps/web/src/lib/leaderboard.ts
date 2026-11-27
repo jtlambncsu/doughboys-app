@@ -3,9 +3,16 @@ import type { Chain } from '@doughboys-app/shared';
 export type Show = 'restaurants' | 'all';
 export type Sort = 'rating' | 'visits';
 
-/** Unclassified chains count as restaurants, so the default view is never empty. */
+/** Products reviewed from a store shelf or a field, rather than a place you go to eat. */
+const PRODUCTS = new Set<Chain['category']>(['packaged_food', 'produce', 'drink']);
+
+/**
+ * The "Restaurants" view: anywhere they went to eat, including grocery stores, gas stations
+ * and one-offs (IKEA, a wrestling show's catering). Only products are left out. Unclassified
+ * chains count too, so the view is never empty.
+ */
 export function isRestaurant(chain: Chain) {
-  return !chain.category || chain.category === 'restaurant';
+  return !PRODUCTS.has(chain.category);
 }
 
 /** Filters and orders the board, numbering ranks within the chosen view. */

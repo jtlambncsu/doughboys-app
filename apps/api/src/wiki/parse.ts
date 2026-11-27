@@ -120,7 +120,9 @@ export function parseRestaurantsPage(wikitext: string): Map<string, RestaurantEn
   const rated = new Set<string>();
   for (const table of wtf(wikitext).tables()) {
     for (const row of table.json() as Record<string, Cell & { links?: { page?: string }[] }>[]) {
-      const restaurant = row.Restaurant?.text?.trim();
+      // Collapse odd spacing: some names use a non-breaking space, which nothing else
+      // (search, Claude's answers) would match.
+      const restaurant = row.Restaurant?.text?.replace(/\s+/gu, ' ').trim();
       const page = row.Episode?.links?.find((link) => link.page)?.page;
       if (!restaurant || !page) continue;
       const key = normalizeTitle(page);
