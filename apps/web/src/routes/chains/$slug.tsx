@@ -1,14 +1,15 @@
 import { createFileRoute, Link } from '@tanstack/react-router';
-import { useSuspenseQuery } from '@tanstack/react-query';
+import { useQuery, useSuspenseQuery } from '@tanstack/react-query';
 import { ArrowDown, ArrowLeft, ArrowUp } from 'lucide-react';
 import type { Episode } from '@doughboys-app/shared';
-import { chainQueryOptions } from '@/api/queries';
+import { chainQueryOptions, chainRatingsQueryOptions } from '@/api/queries';
 import { ChainLogo } from '@/components/ChainLogo';
-import { ForkMeter } from '@/components/ForkMeter';
 import { ForkScore } from '@/components/ForkScore';
 import { ListSkeleton } from '@/components/ListSkeleton';
 import { Badge } from '@/components/ui/badge';
 import { ScoreChart } from '@/features/chains/ScoreChart';
+import { FanRatings } from '@/features/fans/FanRatings';
+import { ScoreCompare } from '@/features/fans/ScoreCompare';
 import { episodeLabel, formatDate } from '@/lib/format';
 import { visitsLabel } from '@/lib/leaderboard';
 import { cn } from '@/lib/utils';
@@ -32,6 +33,7 @@ function ChainPage() {
   const { api } = Route.useRouteContext();
   const { slug } = Route.useParams();
   const { data: chain } = useSuspenseQuery(chainQueryOptions(api, slug));
+  const fanRatings = useQuery(chainRatingsQueryOptions(api, slug));
 
   const rated = chain.episodes.filter((e) => e.averageForks !== undefined);
   const mentions = chain.episodes.filter((e) => e.averageForks === undefined).reverse();
@@ -63,13 +65,9 @@ function ChainPage() {
             </span>
           </p>
         </div>
-        {chain.averageForks !== undefined && (
-          <div className="w-20 shrink-0 space-y-1 text-right">
-            <ForkScore value={chain.averageForks} />
-            <ForkMeter value={chain.averageForks} />
-          </div>
-        )}
       </header>
+
+      <ScoreCompare critic={chain.averageForks} audience={fanRatings.data?.audience} />
 
       {rated.length >= 2 && <ScoreChart episodes={chain.episodes} />}
 
@@ -91,6 +89,8 @@ function ChainPage() {
           </ol>
         </section>
       )}
+
+      <FanRatings slug={chain.slug} chainName={chain.name} />
 
       {mentions.length > 0 && (
         <section className="space-y-2">

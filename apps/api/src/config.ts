@@ -6,6 +6,9 @@ import { apiKeyFromSsm, ClaudeChainClassifier } from './chains/claude.js';
 import { DynamoChainStore } from './chains/dynamo.js';
 import { InMemoryChainStore } from './chains/memory.js';
 import type { ChainClassifier, ChainStore } from './chains/types.js';
+import { CognitoAccountDirectory } from './fans/cognito.js';
+import { DynamoProfileStore, DynamoRatingStore } from './fans/dynamo.js';
+import { FakeAccountDirectory, InMemoryProfileStore, InMemoryRatingStore } from './fans/memory.js';
 import { DynamoEpisodeStore } from './stores/dynamo.js';
 import { InMemoryEpisodeStore } from './stores/memory.js';
 import type { EpisodeStore } from './stores/types.js';
@@ -49,6 +52,16 @@ export function depsFromEnv(env: NodeJS.ProcessEnv = process.env): AppDeps {
   return {
     store: storeFromEnv(env),
     chainStore: chainStoreFromEnv(env),
+    // Fans' data lives in DynamoDB in AWS; locally it's in memory and lost on restart.
+    ratingStore: env.RATINGS_TABLE
+      ? new DynamoRatingStore(env.RATINGS_TABLE)
+      : new InMemoryRatingStore(),
+    profileStore: env.PROFILES_TABLE
+      ? new DynamoProfileStore(env.PROFILES_TABLE)
+      : new InMemoryProfileStore(),
+    accounts: env.USER_POOL_ID
+      ? new CognitoAccountDirectory(env.USER_POOL_ID)
+      : new FakeAccountDirectory(),
     allowedOrigins: env.ALLOWED_ORIGINS
       ? env.ALLOWED_ORIGINS.split(',').map((origin) => origin.trim())
       : undefined,

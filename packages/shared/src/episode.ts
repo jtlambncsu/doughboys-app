@@ -102,6 +102,8 @@ export const chainSchema = z.object({
   /** Unknown until it has been classified. */
   category: chainCategorySchema.optional(),
   domain: z.string().optional(),
+  /** Fans' score (ADR 0010). Present once anyone has rated; average null under 3 ratings. */
+  audience: z.object({ average: z.number().nullable(), count: z.number() }).optional(),
 });
 export type Chain = z.infer<typeof chainSchema>;
 
@@ -117,6 +119,7 @@ export const chainDetailSchema = z.object({
   ratedVisits: z.number(),
   episodes: z.array(episodeSchema),
 });
+// Fans' ratings for a chain come from their own endpoint (GET /api/chains/:slug/ratings).
 export type ChainDetail = z.infer<typeof chainDetailSchema>;
 
 export function seriesFor(number: string | undefined): Series {

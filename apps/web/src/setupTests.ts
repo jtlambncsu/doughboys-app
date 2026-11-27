@@ -20,3 +20,18 @@ globalThis.ResizeObserver ??= class {
 };
 Element.prototype.scrollIntoView ??= () => {};
 window.scrollTo = () => {};
+Element.prototype.hasPointerCapture ??= () => false;
+Element.prototype.setPointerCapture ??= () => {};
+Element.prototype.releasePointerCapture ??= () => {};
+// Toasts (Sonner) read the light/dark setting.
+window.matchMedia ??= (query: string) =>
+  ({
+    matches: false,
+    media: query,
+    addEventListener: () => {},
+    removeEventListener: () => {},
+    addListener: () => {},
+    removeListener: () => {},
+    onchange: null,
+    dispatchEvent: () => false,
+  }) as MediaQueryList;

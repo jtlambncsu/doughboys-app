@@ -6,8 +6,9 @@ import {
   type ErrorComponentProps,
 } from '@tanstack/react-router';
 import { useQueryErrorResetBoundary } from '@tanstack/react-query';
-import { Utensils } from 'lucide-react';
+import { CircleUser, Utensils } from 'lucide-react';
 import { logosEnabled } from '@/lib/logos';
+import { useFan } from '@/auth/fan';
 import { ErrorState } from '@/components/ErrorState';
 import { Button } from '@/components/ui/button';
 import type { RouterContext } from '@/router';
@@ -20,6 +21,24 @@ export const Route = createRootRouteWithContext<RouterContext>()({
 
 const navLink =
   'rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground data-[status=active]:bg-accent data-[status=active]:text-foreground';
+
+/** "Sign in", or a link to your account once signed in. */
+function AccountLink() {
+  const fan = useFan();
+  if (fan.status === 'loading') return null;
+  if (fan.status === 'signedOut') {
+    return (
+      <button type="button" className={navLink} onClick={fan.signIn}>
+        Sign in
+      </button>
+    );
+  }
+  return (
+    <Link to="/me" className={navLink} aria-label="Your account">
+      <CircleUser className="size-5" aria-hidden />
+    </Link>
+  );
+}
 
 function Shell({ children }: { children: React.ReactNode }) {
   return (
@@ -45,6 +64,7 @@ function Shell({ children }: { children: React.ReactNode }) {
             <Link to="/episodes" className={navLink}>
               Episodes
             </Link>
+            <AccountLink />
           </nav>
         </div>
       </header>
@@ -78,7 +98,11 @@ function Shell({ children }: { children: React.ReactNode }) {
             </a>
             .
           </>
-        )}
+        )}{' '}
+        <Link to="/privacy" className="underline">
+          Privacy
+        </Link>
+        .
       </footer>
     </div>
   );

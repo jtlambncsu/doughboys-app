@@ -3,29 +3,16 @@
 Ideas we've agreed to build later, with enough notes to pick them up cold. When one starts,
 write an ADR for the decisions it needs.
 
-## Community ratings: "critic score" and "audience score"
+## Community ratings (built: ADRs 0009, 0010)
 
-**Idea:** fans rate the same chains the Doughboys reviewed, and each chain shows two numbers
-side by side, like Rotten Tomatoes: the boys' fork rating (critic score) and the community's
-average (audience score).
+Follow-ups:
 
-**Sketch:**
+- **Reporting and moderation:** a "report" button and an admin view, if abuse appears.
+  Until then, see "Moderating reviews" in docs/DEPLOYMENT.md.
+- **Google / Apple sign-in** as Cognito identity providers.
+- Audience scores per episode, and sorting the leaderboard by fans' score.
 
-- **Sign-in:** reuse Puzzle Log's Cognito setup (managed login, OIDC + PKCE, JWT checked at
-  API Gateway). Browsing stays public; only rating needs an account (see ADR 0004).
-- **Data:** a `Ratings` table keyed by chain, with the user as the sort key (one rating per
-  person per chain, editable), holding forks (0-5, half steps), an optional note, the date and
-  what they ordered. The audience score is a running average kept on the chain, updated when a
-  rating changes, so the leaderboard doesn't scan every rating.
-- **UI:** a "Rate it" button on each chain, a forks picker (React Hook Form + Zod), and an
-  audience score next to the critic score on the leaderboard and chain pages. Show the score
-  only once a chain has a few ratings (e.g. 5), with the count.
-- **Abuse:** one rating per account per chain, API Gateway throttling, and a minimum account
-  age before ratings count are enough to start.
-- **Open questions:** rate a chain, or a specific visit (location, date)? Do episodes get
-  their own audience scores?
-
-## Logging what you ordered (menus)
+## Logging what you ordered (menus) (first version built: suggestions from orders)
 
 **Idea:** make rating quick by letting people pick what they ordered instead of typing it.
 

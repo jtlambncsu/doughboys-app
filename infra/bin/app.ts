@@ -20,7 +20,7 @@ const allowedOrigins = assertOrigins(
   'ALLOWED_ORIGINS',
 );
 
-new ApiStack(app, 'DoughboysApi', { env, allowedOrigins });
+new ApiStack(app, 'DoughboysApi', { env, allowedOrigins, webUrls: allowedOrigins });
 
 /**
  * One-time setup, deployed from your machine: lets GitHub Actions deploy DoughboysApi.

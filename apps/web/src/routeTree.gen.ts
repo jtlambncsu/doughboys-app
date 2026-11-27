@@ -10,6 +10,8 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as MeRouteImport } from './routes/me'
+import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as ChainsSlugRouteImport } from './routes/chains/$slug'
 import { Route as EpisodesIndexRouteImport } from './routes/episodes/index'
 import { Route as EpisodesSlugRouteImport } from './routes/episodes/$slug'
@@ -17,6 +19,16 @@ import { Route as EpisodesSlugRouteImport } from './routes/episodes/$slug'
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MeRoute = MeRouteImport.update({
+  id: '/me',
+  path: '/me',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ChainsSlugRoute = ChainsSlugRouteImport.update({
@@ -37,12 +49,16 @@ const EpisodesSlugRoute = EpisodesSlugRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/me': typeof MeRoute
+  '/privacy': typeof PrivacyRoute
   '/chains/$slug': typeof ChainsSlugRoute
   '/episodes/$slug': typeof EpisodesSlugRoute
   '/episodes/': typeof EpisodesIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/me': typeof MeRoute
+  '/privacy': typeof PrivacyRoute
   '/chains/$slug': typeof ChainsSlugRoute
   '/episodes/$slug': typeof EpisodesSlugRoute
   '/episodes': typeof EpisodesIndexRoute
@@ -50,20 +66,38 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/me': typeof MeRoute
+  '/privacy': typeof PrivacyRoute
   '/chains/$slug': typeof ChainsSlugRoute
   '/episodes/$slug': typeof EpisodesSlugRoute
   '/episodes/': typeof EpisodesIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/chains/$slug' | '/episodes/$slug' | '/episodes/'
+  fullPaths:
+    | '/'
+    | '/me'
+    | '/privacy'
+    | '/chains/$slug'
+    | '/episodes/$slug'
+    | '/episodes/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/chains/$slug' | '/episodes/$slug' | '/episodes'
-  id: '__root__' | '/' | '/chains/$slug' | '/episodes/$slug' | '/episodes/'
+  to:
+    '/' | '/me' | '/privacy' | '/chains/$slug' | '/episodes/$slug' | '/episodes'
+  id:
+    | '__root__'
+    | '/'
+    | '/me'
+    | '/privacy'
+    | '/chains/$slug'
+    | '/episodes/$slug'
+    | '/episodes/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  MeRoute: typeof MeRoute
+  PrivacyRoute: typeof PrivacyRoute
   ChainsSlugRoute: typeof ChainsSlugRoute
   EpisodesSlugRoute: typeof EpisodesSlugRoute
   EpisodesIndexRoute: typeof EpisodesIndexRoute
@@ -76,6 +110,20 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/me': {
+      id: '/me'
+      path: '/me'
+      fullPath: '/me'
+      preLoaderRoute: typeof MeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/chains/$slug': {
@@ -104,6 +152,8 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  MeRoute: MeRoute,
+  PrivacyRoute: PrivacyRoute,
   ChainsSlugRoute: ChainsSlugRoute,
   EpisodesSlugRoute: EpisodesSlugRoute,
   EpisodesIndexRoute: EpisodesIndexRoute,

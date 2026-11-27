@@ -45,14 +45,86 @@ describe('ApiStack', () => {
     });
   });
 
-  it('allows GET from the web app in CORS', () => {
+  it('allows the web app’s methods and headers in CORS', () => {
     // Keep in sync with apps/web/src/api/client.ts.
     template.hasResourceProperties('AWS::ApiGatewayV2::Api', {
       CorsConfiguration: Match.objectLike({
-        AllowMethods: ['GET'],
+        AllowMethods: ['GET', 'PUT', 'DELETE'],
+        AllowHeaders: ['authorization', 'content-type'],
         AllowOrigins: ['https://forks.example'],
       }),
     });
+  });
+
+  it('requires a Cognito token on every route that reads or changes a fan’s data', () => {
+    for (const routeKey of [
+      'GET /api/me',
+      'PUT /api/me',
+      'DELETE /api/me',
+      'GET /api/me/ratings',
+      'PUT /api/chains/{slug}/rating',
+      'DELETE /api/chains/{slug}/rating',
+    ]) {
+      template.hasResourceProperties('AWS::ApiGatewayV2::Route', {
+        RouteKey: routeKey,
+        AuthorizationType: 'JWT',
+      });
+    }
+    // Browsing stays public.
+    template.hasResourceProperties('AWS::ApiGatewayV2::Route', {
+      RouteKey: '$default',
+      AuthorizationType: 'NONE',
+    });
+  });
+
+  it('lets fans sign up, but only after verifying their email', () => {
+    template.hasResourceProperties('AWS::Cognito::UserPool', {
+      AdminCreateUserConfig: { AllowAdminCreateUserOnly: false },
+      AutoVerifiedAttributes: ['email'],
+      UsernameAttributes: ['email'],
+      Policies: Match.objectLike({
+        PasswordPolicy: Match.objectLike({ MinimumLength: 12 }),
+        SignInPolicy: { AllowedFirstAuthFactors: ['PASSWORD', 'WEB_AUTHN'] },
+      }),
+      DeletionProtection: 'ACTIVE',
+    });
+  });
+
+  it('uses the code flow with PKCE and only redirects to known web URLs', () => {
+    template.hasResourceProperties('AWS::Cognito::UserPoolClient', {
+      AllowedOAuthFlows: ['code'],
+      GenerateSecret: false,
+      PreventUserExistenceErrors: 'ENABLED',
+      CallbackURLs: ['https://forks.example', 'http://localhost:5173'],
+    });
+  });
+
+  it('keeps fans’ ratings and profiles, with point-in-time recovery', () => {
+    template.hasResource('AWS::DynamoDB::GlobalTable', {
+      Properties: Match.objectLike({
+        KeySchema: [
+          { AttributeName: 'chain', KeyType: 'HASH' },
+          { AttributeName: 'userId', KeyType: 'RANGE' },
+        ],
+        GlobalSecondaryIndexes: [Match.objectLike({ IndexName: 'byUser' })],
+        Replicas: [
+          Match.objectLike({
+            PointInTimeRecoverySpecification: { PointInTimeRecoveryEnabled: true },
+          }),
+        ],
+      }),
+      DeletionPolicy: 'Retain',
+    });
+  });
+
+  it('lets the API delete Cognito users, and nothing else in Cognito', () => {
+    const apiPolicies = JSON.stringify(
+      template.findResources('AWS::IAM::Policy', {
+        Properties: { Roles: [{ Ref: Match.stringLikeRegexp('ApiFunction') }] },
+      }),
+    );
+    expect(apiPolicies).toContain('cognito-idp:AdminDeleteUser');
+    expect(apiPolicies.match(/cognito-idp:/g)).toHaveLength(1);
   });
 
   it('throttles the API to cap costs', () => {
@@ -79,13 +151,25 @@ describe('ApiStack', () => {
     }
   });
 
-  it('gives the API read-only access to the table', () => {
+  it('gives the API read-only access to episodes and chains', () => {
     const policies = template.findResources('AWS::IAM::Policy', {
       Properties: { Roles: [{ Ref: Match.stringLikeRegexp('ApiFunction') }] },
     });
-    const actions = JSON.stringify(policies);
-    expect(actions).toContain('dynamodb:GetItem');
-    expect(actions).not.toContain('dynamodb:PutItem');
+    type Statement = { Action: string | string[]; Resource: unknown };
+    const statements = Object.values(policies).flatMap(
+      (p) =>
+        (p as { Properties: { PolicyDocument: { Statement: Statement[] } } }).Properties
+          .PolicyDocument.Statement,
+    );
+    const on = (table: string) =>
+      statements
+        .filter((s) => JSON.stringify(s.Resource).includes(table))
+        .flatMap((s) => [s.Action].flat());
+    for (const table of ['Episodes', 'Chains']) {
+      expect(on(table)).toContain('dynamodb:GetItem');
+      expect(on(table)).not.toContain('dynamodb:PutItem');
+      expect(on(table)).not.toContain('dynamodb:DeleteItem');
+    }
   });
 });
 

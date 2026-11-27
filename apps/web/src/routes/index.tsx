@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { useSuspenseQuery } from '@tanstack/react-query';
-import { Repeat } from 'lucide-react';
+import { Repeat, Users } from 'lucide-react';
 import { z } from 'zod';
 import type { Chain } from '@doughboys-app/shared';
 import { chainsQueryOptions } from '@/api/queries';
@@ -134,6 +134,18 @@ function Leaderboard() {
   );
 }
 
+/** "Fans 4.2", once enough fans have rated. */
+function FansScore({ chain }: { chain: Chain }) {
+  const average = chain.audience?.average;
+  if (average == null) return null;
+  return (
+    <span className="text-muted-foreground inline-flex items-center gap-1 text-xs whitespace-nowrap">
+      <Users className="size-3" aria-hidden />
+      Fans <span className="text-foreground font-medium tabular-nums">{average}</span>
+    </span>
+  );
+}
+
 function VisitsBadge({ visits, emphasized }: { visits: number; emphasized?: boolean }) {
   return (
     <span
@@ -164,6 +176,7 @@ function PodiumCard({ chain, sort }: { chain: RankedChain; sort: string }) {
         <ForkScore value={chain.averageForks} />
         <ForkMeter value={chain.averageForks} />
         <VisitsBadge visits={chain.visits} emphasized={sort === 'visits'} />
+        <FansScore chain={chain} />
       </span>
     </Link>
   );
@@ -182,7 +195,10 @@ function ChainRow({ chain, sort }: { chain: RankedChain; sort: string }) {
       <ChainLogo name={chain.name} domain={chain.domain} size={36} />
       <span className="min-w-0 flex-1">
         <span className="block truncate font-medium">{chain.name}</span>
-        <VisitsBadge visits={chain.visits} emphasized={sort === 'visits'} />
+        <span className="flex flex-wrap gap-x-3">
+          <VisitsBadge visits={chain.visits} emphasized={sort === 'visits'} />
+          <FansScore chain={chain} />
+        </span>
       </span>
       <span className="flex w-20 shrink-0 flex-col items-end gap-1">
         <ForkScore value={chain.averageForks} />

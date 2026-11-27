@@ -5,42 +5,14 @@ import {
   displayName,
   episodesByChain,
   type ChainDetail,
-  type ChainInfo,
-  type EpisodeSummary,
 } from '@doughboys-app/shared';
-import { withOverrides } from '../chains/overrides.js';
-import type { ChainStore } from '../chains/types.js';
+import type { Catalog } from '../catalog.js';
 import type { EpisodeStore } from '../stores/types.js';
 
-/**
- * Episode data changes about once a week, so the list is kept for a few minutes per Lambda
- * container instead of scanning DynamoDB on every request.
- */
-function cached<T>(load: () => Promise<T>, ttlMs: number, now: () => number) {
-  let cached: { at: number; value: Promise<T> } | undefined;
-  return () => {
-    if (!cached || now() - cached.at > ttlMs) {
-      const value = load();
-      cached = { at: now(), value };
-      value.catch(() => (cached = undefined)); // don't keep a failure around
-    }
-    return cached.value;
-  };
-}
-
-export function episodesRouter(
-  store: EpisodeStore,
-  chainStore: ChainStore,
-  cacheMs: number,
-  now = Date.now,
-) {
+export function episodesRouter(store: EpisodeStore, catalog: Catalog) {
   const router = Router();
-  const list = cached((): Promise<EpisodeSummary[]> => store.listEpisodes(), cacheMs, now);
-  const chainInfo = cached(
-    async (): Promise<Map<string, ChainInfo>> => withOverrides(await chainStore.all()),
-    cacheMs,
-    now,
-  );
+  const list = catalog.episodes;
+  const chainInfo = catalog.chainInfo;
 
   router.get('/episodes', async (_req, res) => {
     res.json(await list());
@@ -56,8 +28,13 @@ export function episodesRouter(
   });
 
   router.get('/chains', async (_req, res) => {
-    const [episodes, info] = await Promise.all([list(), chainInfo()]);
-    res.json(chainLeaderboard(episodes, info));
+    const [episodes, info, audience] = await Promise.all([list(), chainInfo(), catalog.audience()]);
+    res.json(
+      chainLeaderboard(episodes, info).map((chain) => {
+        const score = audience.get(chain.slug);
+        return score ? { ...chain, audience: score } : chain;
+      }),
+    );
   });
 
   // One chain (by slug) with every episode that featured it, for its page.

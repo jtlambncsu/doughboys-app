@@ -80,6 +80,34 @@ work and chains stay unclassified.
 Sign up at logo.dev, copy the **publishable** token (starts with `pk_`), and add it in
 Vercel as `VITE_LOGO_DEV_TOKEN`, then redeploy the web app. Without it, chains show initials.
 
+### Fan sign-in (Cognito)
+
+The stack creates the user pool. After a deploy that adds or changes it, copy three outputs
+of `DoughboysApi` (in the GitHub deploy log, or `aws cloudformation describe-stacks
+--stack-name DoughboysApi --query "Stacks[0].Outputs"`) into Vercel's environment
+variables, then redeploy the web app:
+
+| Vercel variable          | Stack output       |
+| ------------------------ | ------------------ |
+| `VITE_COGNITO_AUTHORITY` | `CognitoAuthority` |
+| `VITE_COGNITO_CLIENT_ID` | `CognitoClientId`  |
+| `VITE_COGNITO_DOMAIN`    | `CognitoDomain`    |
+
+Sign-in only redirects back to the `ALLOWED_ORIGINS` URLs and `http://localhost:5173`.
+
+### Moderating reviews
+
+There's no admin screen yet. To remove a review, find its owner and delete it in CloudShell
+(replace the chain slug and the display name):
+
+```bash
+TABLE=$(aws cloudformation describe-stack-resources --stack-name DoughboysApi --query "StackResources[?starts_with(LogicalResourceId,'Ratings')].PhysicalResourceId" --output text)
+aws dynamodb query --table-name "$TABLE" --key-condition-expression "chain = :c" \
+  --expression-attribute-values '{":c":{"S":"taco-bell"}}' \
+  --query "Items[?displayName.S=='Some Name'].userId.S" --output text
+aws dynamodb delete-item --table-name "$TABLE" --key '{"chain":{"S":"taco-bell"},"userId":{"S":"PASTE-USER-ID"}}'
+```
+
 ### 6. Check the live API
 
 ```bash

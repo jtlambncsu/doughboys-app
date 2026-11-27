@@ -1,8 +1,10 @@
 import { fileURLToPath } from 'node:url';
 import { CfnOutput, Duration, RemovalPolicy, Stack, type StackProps } from 'aws-cdk-lib';
-import { CorsHttpMethod, HttpApi, HttpStage } from 'aws-cdk-lib/aws-apigatewayv2';
+import { CorsHttpMethod, HttpApi, HttpMethod, HttpStage } from 'aws-cdk-lib/aws-apigatewayv2';
+import { HttpUserPoolAuthorizer } from 'aws-cdk-lib/aws-apigatewayv2-authorizers';
 import { HttpLambdaIntegration } from 'aws-cdk-lib/aws-apigatewayv2-integrations';
 import { AttributeType, Billing, TableV2 } from 'aws-cdk-lib/aws-dynamodb';
+import { PolicyStatement } from 'aws-cdk-lib/aws-iam';
 import { Rule, Schedule } from 'aws-cdk-lib/aws-events';
 import { LambdaFunction } from 'aws-cdk-lib/aws-events-targets';
 import { Architecture, Runtime } from 'aws-cdk-lib/aws-lambda';
@@ -10,6 +12,7 @@ import { NodejsFunction, type NodejsFunctionProps } from 'aws-cdk-lib/aws-lambda
 import { LogGroup, RetentionDays } from 'aws-cdk-lib/aws-logs';
 import { StringParameter } from 'aws-cdk-lib/aws-ssm';
 import type { Construct } from 'constructs';
+import { Auth } from './auth.js';
 
 /** Where the Anthropic API key lives in SSM Parameter Store (a SecureString, made by hand). */
 export const ANTHROPIC_KEY_PARAMETER = '/doughboys-app/anthropic-api-key';
@@ -19,6 +22,8 @@ const repoPath = (relative: string) => fileURLToPath(new URL(`../../${relative}`
 export interface ApiStackProps extends StackProps {
   /** Browser origins allowed to call the API. Omit to allow any. */
   allowedOrigins?: string[];
+  /** Web app URLs that sign-in may redirect back to. Defaults to the allowed origins. */
+  webUrls?: string[];
 }
 
 /**
@@ -52,6 +57,36 @@ export class ApiStack extends Stack {
       parameterName: ANTHROPIC_KEY_PARAMETER,
     });
 
+    // Fans' accounts (ADR 0009).
+    const auth = new Auth(this, 'Auth', { webUrls: props.webUrls ?? props.allowedOrigins ?? [] });
+
+    // Fans' ratings: one per person per chain, so the key is (chain, user) and the database
+    // itself enforces "one each". The byUser index lists a person's ratings ("My ratings")
+    // and finds them all when they delete their account. User data: kept if the stack is
+    // deleted, and recoverable to any second of the last 35 days.
+    const ratings = new TableV2(this, 'Ratings', {
+      partitionKey: { name: 'chain', type: AttributeType.STRING },
+      sortKey: { name: 'userId', type: AttributeType.STRING },
+      globalSecondaryIndexes: [
+        {
+          indexName: 'byUser',
+          partitionKey: { name: 'userId', type: AttributeType.STRING },
+          sortKey: { name: 'chain', type: AttributeType.STRING },
+        },
+      ],
+      billing: Billing.onDemand(),
+      pointInTimeRecoverySpecification: { pointInTimeRecoveryEnabled: true },
+      removalPolicy: RemovalPolicy.RETAIN,
+    });
+
+    // Public display names, chosen by each fan.
+    const profiles = new TableV2(this, 'Profiles', {
+      partitionKey: { name: 'userId', type: AttributeType.STRING },
+      billing: Billing.onDemand(),
+      pointInTimeRecoverySpecification: { pointInTimeRecoveryEnabled: true },
+      removalPolicy: RemovalPolicy.RETAIN,
+    });
+
     const shared: Partial<NodejsFunctionProps> = {
       projectRoot: repoPath(''),
       depsLockFilePath: repoPath('package-lock.json'),
@@ -72,6 +107,9 @@ export class ApiStack extends Stack {
       timeout: Duration.seconds(10),
       environment: {
         ...shared.environment,
+        RATINGS_TABLE: ratings.tableName,
+        PROFILES_TABLE: profiles.tableName,
+        USER_POOL_ID: auth.userPool.userPoolId,
         ...(props.allowedOrigins?.length && { ALLOWED_ORIGINS: props.allowedOrigins.join(',') }),
       },
       logGroup: new LogGroup(this, 'ApiLogs', {
@@ -81,6 +119,15 @@ export class ApiStack extends Stack {
     });
     table.grantReadData(apiFn); // the API only reads
     chains.grantReadData(apiFn);
+    ratings.grantReadWriteData(apiFn);
+    profiles.grantReadWriteData(apiFn);
+    // "Delete my account" removes the Cognito user too. Only that action, only this pool.
+    apiFn.addToRolePolicy(
+      new PolicyStatement({
+        actions: ['cognito-idp:AdminDeleteUser'],
+        resources: [auth.userPool.userPoolArn],
+      }),
+    );
 
     // Reads ~1,100 pages from the wiki in batches of 50 (about half a minute) and the podcast
     // feed, then asks
@@ -108,17 +155,34 @@ export class ApiStack extends Stack {
       targets: [new LambdaFunction(importFn)],
     });
 
+    const integration = new HttpLambdaIntegration('ApiIntegration', apiFn);
     const api = new HttpApi(this, 'HttpApi', {
-      defaultIntegration: new HttpLambdaIntegration('ApiIntegration', apiFn),
+      // Everything is public by default (browsing); the routes below need a signed-in fan.
+      defaultIntegration: integration,
       corsPreflight: {
         allowOrigins: props.allowedOrigins?.length ? props.allowedOrigins : ['*'],
-        // Every method the web app calls. A method missing here makes the browser block
-        // the request, even though the API itself supports it.
-        allowMethods: [CorsHttpMethod.GET],
+        // Every method and header the web app sends. One missing here makes the browser
+        // block the request, even though the API itself supports it.
+        allowMethods: [CorsHttpMethod.GET, CorsHttpMethod.PUT, CorsHttpMethod.DELETE],
+        allowHeaders: ['authorization', 'content-type'],
         maxAge: Duration.days(1),
       },
       createDefaultStage: false,
     });
+
+    // API Gateway checks the Cognito access token on these routes before Lambda runs; the
+    // Express app checks again (defense in depth). A request without a valid token gets 401.
+    const authorizer = new HttpUserPoolAuthorizer('CognitoAuthorizer', auth.userPool, {
+      userPoolClients: [auth.client],
+    });
+    const signedIn: [string, HttpMethod[]][] = [
+      ['/api/me', [HttpMethod.GET, HttpMethod.PUT, HttpMethod.DELETE]],
+      ['/api/me/ratings', [HttpMethod.GET]],
+      ['/api/chains/{slug}/rating', [HttpMethod.PUT, HttpMethod.DELETE]],
+    ];
+    for (const [path, methods] of signedIn) {
+      api.addRoutes({ path, methods, integration, authorizer });
+    }
 
     // A cost ceiling: the API handles at most 10 requests a second, whoever sends them.
     new HttpStage(this, 'DefaultStage', {

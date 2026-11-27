@@ -28,6 +28,8 @@ conventions; when in doubt, do what Puzzle Log does.
   (`/doughboys-app/anthropic-api-key`) and never in code, env files or chat. Tests use fakes.
 - Logos: Logo.dev image CDN with a publishable token (`VITE_LOGO_DEV_TOKEN`); initials badge
   fallback (`ChainLogo`).
+- Fans: Cognito managed login (passwords + passkeys, ADR 0009) with `react-oidc-context`;
+  ratings and profiles in DynamoDB (ADR 0010), routes in `apps/api/src/routes/fans.ts`.
 - Ideas for later are in `docs/ROADMAP.md`.
 - Shared: Zod schemas and pure logic in `packages/shared` (consumed as TypeScript source).
 - Infra: AWS CDK in `infra/`, deployed by GitHub Actions on pushes to `main` using OIDC.
@@ -48,6 +50,10 @@ conventions; when in doubt, do what Puzzle Log does.
   always appear with "Unofficial fan app" next to it (header, page title), and the footer's
   "not affiliated" note stays. Don't use the show's logos or artwork.
 - TypeScript is pinned to 6.0 until typescript-eslint supports 7.
+- Every fan-data access is scoped to the signed-in user (`res.locals.userId`, from the
+  verified token): never take a user ID from the body or URL, and never return account IDs in
+  public responses. Routes about "me" need both the API Gateway JWT route (infra) and
+  `requireUser` (API); infra tests check the former.
 - Stateful AWS resources are `RETAIN`ed; changing a DynamoDB key schema creates a new table.
 - API code is bundled to CommonJS for Lambda: don't use `import.meta` in `apps/api/src`.
 - After infra changes deploy, verify against the live API (e.g. `curl` health and

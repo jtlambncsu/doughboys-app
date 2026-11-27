@@ -1,4 +1,15 @@
-import type { Chain, ChainDetail, Episode, EpisodeSummary } from '@doughboys-app/shared';
+import type {
+  Chain,
+  ChainDetail,
+  ChainRatings,
+  Episode,
+  EpisodeSummary,
+  FanRating,
+  MenuItem,
+  MyRating,
+  Profile,
+  RatingInput,
+} from '@doughboys-app/shared';
 
 /**
  * Empty in development, so requests go to `/api` on the Vite server, which proxies to the
@@ -15,23 +26,68 @@ export class ApiError extends Error {
   }
 }
 
-/** Thin, typed wrapper around `fetch`. TanStack Query (see `queries.ts`) adds caching. */
-export function createDoughboysApi() {
-  async function get<T>(path: string): Promise<T> {
-    const res = await fetch(`${API_URL}/api${path}`);
-    if (!res.ok)
-      throw new ApiError(
-        res.status,
-        res.status === 404 ? 'Not found' : `Request failed: ${res.status}`,
-      );
-    return (await res.json()) as T;
+function messageFor(status: number, body: unknown) {
+  const error = (body as { error?: string; issues?: { message: string }[] } | null) ?? {};
+  if (status === 400 && error.issues?.length) return error.issues[0]!.message;
+  if (status === 401) return 'Your session has expired. Sign in again.';
+  if (status === 404) return 'Not found';
+  if (status === 409 && error.error) return error.error;
+  return `Request failed: ${status}`;
+}
+
+/** Returns the signed-in fan's access token, or undefined when nobody is signed in. */
+export type GetAccessToken = () => Promise<string | undefined>;
+
+/**
+ * Thin, typed wrapper around `fetch`. TanStack Query (see `queries.ts`) adds caching.
+ * The access token is only sent to the routes about "me"; browsing is anonymous.
+ */
+export function createDoughboysApi(getAccessToken: GetAccessToken = async () => undefined) {
+  async function request<T>(
+    path: string,
+    {
+      method = 'GET',
+      body,
+      auth = false,
+    }: { method?: string; body?: unknown; auth?: boolean } = {},
+  ): Promise<T> {
+    const headers: Record<string, string> = {};
+    if (body !== undefined) headers['Content-Type'] = 'application/json';
+    if (auth) {
+      const token = await getAccessToken();
+      if (token) headers.Authorization = `Bearer ${token}`;
+    }
+    const res = await fetch(`${API_URL}/api${path}`, {
+      method,
+      headers,
+      ...(body !== undefined && { body: JSON.stringify(body) }),
+    });
+    if (!res.ok) {
+      const errorBody = await res.json().catch(() => null);
+      throw new ApiError(res.status, messageFor(res.status, errorBody));
+    }
+    return res.status === 204 ? (undefined as T) : ((await res.json()) as T);
   }
 
+  const chainPath = (slug: string) => `/chains/${encodeURIComponent(slug)}`;
+
   return {
-    episodes: () => get<EpisodeSummary[]>('/episodes'),
-    episode: (slug: string) => get<Episode>(`/episodes/${encodeURIComponent(slug)}`),
-    chains: () => get<Chain[]>('/chains'),
-    chain: (slug: string) => get<ChainDetail>(`/chains/${encodeURIComponent(slug)}`),
+    episodes: () => request<EpisodeSummary[]>('/episodes'),
+    episode: (slug: string) => request<Episode>(`/episodes/${encodeURIComponent(slug)}`),
+    chains: () => request<Chain[]>('/chains'),
+    chain: (slug: string) => request<ChainDetail>(chainPath(slug)),
+    chainRatings: (slug: string) => request<ChainRatings>(`${chainPath(slug)}/ratings`),
+    menu: (slug: string) => request<MenuItem[]>(`${chainPath(slug)}/menu`),
+
+    me: () => request<Profile>('/me', { auth: true }),
+    saveProfile: (displayName: string) =>
+      request<Profile>('/me', { method: 'PUT', body: { displayName }, auth: true }),
+    myRatings: () => request<MyRating[]>('/me/ratings', { auth: true }),
+    rate: (slug: string, input: RatingInput) =>
+      request<FanRating>(`${chainPath(slug)}/rating`, { method: 'PUT', body: input, auth: true }),
+    deleteRating: (slug: string) =>
+      request<void>(`${chainPath(slug)}/rating`, { method: 'DELETE', auth: true }),
+    deleteAccount: () => request<void>('/me', { method: 'DELETE', auth: true }),
   };
 }
 
