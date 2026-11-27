@@ -159,3 +159,20 @@ new ones with new names) and can be deleted by hand.
 **Takeaway:** a template that synthesizes isn't a template that deploys. For resources
 with ordering rules between them, read the service's docs on defaults before setting
 something explicitly.
+
+## An email address in public deploy logs
+
+**Symptom:** reading the deploy log after turning on alerts, the owner's email address was
+right there: `Ops/Alerts/<address> (OpsAlerts<address>…)`. The repo is public, so its
+GitHub Actions logs are too.
+
+**Cause:** `topic.addSubscription(new EmailSubscription(email))` names the subscription
+resource after the address, and CloudFormation prints every resource name as it deploys.
+The address was kept out of the code (a GitHub variable), but not out of the logs.
+
+**Fix:** create the subscription with a fixed ID (`new Subscription(this, 'AlertEmail', …)`).
+A CDK test now checks that no resource name contains the address. The old log was deleted
+by hand (GitHub: the workflow run → ⋯ → Delete all logs).
+
+**Takeaway:** "not in the repo" isn't "private" when CI logs are public. Check what your tools
+print, not just what you commit.

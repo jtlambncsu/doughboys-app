@@ -214,6 +214,10 @@ describe('guardrails (ADR 0013)', () => {
       Protocol: 'email',
       Endpoint: 'owner@example.com',
     });
+    // The address must never appear in resource names: those are printed in public deploy logs.
+    const names = Object.keys(withAlerts.toJSON().Resources as object).join(' ');
+    expect(names.toLowerCase()).not.toContain('owner');
+    expect(names.toLowerCase()).not.toContain('example');
     withAlerts.resourceCountIs('AWS::CloudWatch::Alarm', 3);
     withAlerts.hasResourceProperties('AWS::Budgets::Budget', {
       Budget: Match.objectLike({ BudgetLimit: { Amount: 10, Unit: 'USD' }, TimeUnit: 'MONTHLY' }),

@@ -21,8 +21,7 @@ import { PolicyStatement } from 'aws-cdk-lib/aws-iam';
 import type { IFunction } from 'aws-cdk-lib/aws-lambda';
 import { NodejsFunction, type NodejsFunctionProps } from 'aws-cdk-lib/aws-lambda-nodejs';
 import { FilterPattern, LogGroup, MetricFilter, RetentionDays } from 'aws-cdk-lib/aws-logs';
-import { Topic } from 'aws-cdk-lib/aws-sns';
-import { EmailSubscription } from 'aws-cdk-lib/aws-sns-subscriptions';
+import { Subscription, SubscriptionProtocol, Topic } from 'aws-cdk-lib/aws-sns';
 import { Construct } from 'constructs';
 
 export interface OpsProps {
@@ -211,7 +210,13 @@ export class Ops extends Construct {
 
     // --- Email alerts (only when an alert email is configured) ---
     const topic = new Topic(this, 'Alerts', { displayName: 'Doughboys App alerts' });
-    topic.addSubscription(new EmailSubscription(props.alertEmail));
+    // A fixed construct ID: `topic.addSubscription(new EmailSubscription(email))` names the
+    // resource after the address, which then shows in the (public) deploy logs.
+    new Subscription(this, 'AlertEmail', {
+      topic,
+      protocol: SubscriptionProtocol.EMAIL,
+      endpoint: props.alertEmail,
+    });
     const alarm = (
       id: string,
       description: string,
