@@ -37,7 +37,7 @@ describe('mergeSettings', () => {
 });
 
 describe('applyBranding', () => {
-  it('reads the merged style, applies our settings and assets, keeps other assets', async () => {
+  it('reads the merged style, applies our settings and assets, keeps other assets but not sign-in provider buttons', async () => {
     const cognito = mockClient(CognitoIdentityProviderClient);
     cognito.on(DescribeManagedLoginBrandingByClientCommand).resolves({
       ManagedLoginBranding: {
@@ -49,6 +49,13 @@ describe('applyBranding', () => {
             ColorMode: 'LIGHT',
             Extension: 'PNG',
             Bytes: new Uint8Array([1]),
+          },
+          {
+            Category: 'IDP_BUTTON_ICON',
+            ColorMode: 'LIGHT',
+            Extension: 'SVG',
+            ResourceId: 'Google',
+            Bytes: new Uint8Array([3]),
           },
           {
             Category: 'PAGE_BACKGROUND',

@@ -66,9 +66,13 @@ export async function applyBranding(
     (style.Settings ?? {}) as Json,
     JSON.parse(settings) as Json,
   );
-  // Keep Cognito's other assets; replace only the categories we provide.
+  // Keep Cognito's other assets; replace only the categories we provide. Merged resources
+  // include default buttons for Google, Apple etc. (assets with a ResourceId), which Cognito
+  // refuses to save for a pool without those sign-in providers, so leave them out.
   const ours = new Set(assets.map((a) => `${a.category}/${a.colorMode}`));
-  const kept = (style.Assets ?? []).filter((a) => !ours.has(`${a.Category}/${a.ColorMode}`));
+  const kept = (style.Assets ?? []).filter(
+    (a) => !a.ResourceId && !ours.has(`${a.Category}/${a.ColorMode}`),
+  );
   const added: AssetType[] = assets.map((a) => ({
     Category: a.category as AssetType['Category'],
     ColorMode: a.colorMode as AssetType['ColorMode'],

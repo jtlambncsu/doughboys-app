@@ -192,3 +192,17 @@ slowed down: `findBy…` returns as soon as the element appears.
 
 **Takeaway:** a test that times out only in CI is usually measuring the machine, not the
 code. Read the duration next to the failure (here 1194 ms against a 1000 ms limit).
+
+## Cognito rejected the sign-in page images (and buttons we never added)
+
+**Symptom:** The first branding deploy failed with "Invalid assets provided": button icons for
+Google, Apple, Facebook and Amazon "not found", the logo's ratio (300×64) out of range, and the
+favicon (24×44) not square.
+
+**Cause:** Two things. Reading the style with merged resources returns Cognito's default
+sign-in provider buttons, but saving them back fails for a pool without those providers. And
+Cognito checks image shapes: logos must be between 1:1 and 4:1, favicons exactly square.
+
+**Fix:** Drop assets that have a `ResourceId` (provider buttons) before saving, widen the SVG
+canvases (logo 300×80, favicon 44×44) without changing the drawing, and add an infra test that
+checks the ratios so the next logo tweak fails in CI instead of in CloudFormation.
