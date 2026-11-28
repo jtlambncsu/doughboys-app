@@ -7,8 +7,8 @@ write an ADR for the decisions it needs.
 
 Follow-ups:
 
-- **Reporting and moderation:** a "report" button and an admin view, if abuse appears.
-  Until then, see "Moderating reviews" in docs/DEPLOYMENT.md.
+- **Reporting** is built (ADR 0014). Next: an admin view in the app to restore or delete
+  reported reviews, instead of CloudShell commands.
 - **Google / Apple sign-in** as Cognito identity providers.
 - Audience scores per episode, and sorting the leaderboard by fans' score.
 

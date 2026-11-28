@@ -120,16 +120,31 @@ or alarm emails won't arrive. Budget emails need no confirmation.
 
 ### Moderating reviews
 
-There's no admin screen yet. To remove a review, find its owner and delete it in CloudShell
-(replace the chain slug and the display name):
+Fans can report reviews (ADR 0014). Each report emails `ALERT_EMAIL` with the review, the
+reason, its `chain` and `userId`. Three reports hide the review's text automatically.
+
+In CloudShell, set the two values from the email, then pick an action:
 
 ```bash
 TABLE=$(aws cloudformation describe-stack-resources --stack-name DoughboysApi --query "StackResources[?starts_with(LogicalResourceId,'Ratings')].PhysicalResourceId" --output text)
-aws dynamodb query --table-name "$TABLE" --key-condition-expression "chain = :c" \
-  --expression-attribute-values '{":c":{"S":"taco-bell"}}' \
-  --query "Items[?displayName.S=='Some Name'].userId.S" --output text
-aws dynamodb delete-item --table-name "$TABLE" --key '{"chain":{"S":"taco-bell"},"userId":{"S":"PASTE-USER-ID"}}'
+CHAIN=taco-bell
+USERID=paste-user-id-from-the-email
+KEY="{\"chain\":{\"S\":\"$CHAIN\"},\"userId\":{\"S\":\"$USERID\"}}"
 ```
+
+**Keep it (the reports were wrong):** show it again and reset its report count.
+
+```bash
+aws dynamodb update-item --table-name "$TABLE" --key "$KEY" --update-expression "REMOVE hidden, reportCount"
+```
+
+**Remove it:** delete the review (the fan keeps their account and can rate again).
+
+```bash
+aws dynamodb delete-item --table-name "$TABLE" --key "$KEY"
+```
+
+For repeat offenders, also disable the account in Cognito → Users (it can be re-enabled).
 
 ### 6. Check the live API
 

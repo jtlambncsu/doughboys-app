@@ -1,6 +1,6 @@
 import { QueryClient, queryOptions, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouteContext } from '@tanstack/react-router';
-import type { RatingInput } from '@doughboys-app/shared';
+import type { RatingInput, ReportInput } from '@doughboys-app/shared';
 import type { DoughboysApi } from './client';
 
 /**
@@ -77,6 +77,17 @@ export function useDeleteRating(slug: string) {
   return useMutation({
     mutationFn: () => api.deleteRating(slug),
     onSuccess: () => changed(slug),
+  });
+}
+
+export function useReport(slug: string) {
+  const api = useApi();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ ratingId, input }: { ratingId: string; input: ReportInput }) =>
+      api.report(slug, ratingId, input),
+    // The review may now be hidden.
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey: ['ratings', 'chain', slug] }),
   });
 }
 

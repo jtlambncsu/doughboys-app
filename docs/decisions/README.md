@@ -21,3 +21,4 @@ New decision? Copy [`0000-template.md`](0000-template.md) to the next number.
 | [0011](0011-drop-orders-from-fan-ratings.md)        | Drop "what I ordered" from fan ratings                          |
 | [0012](0012-ratings-in-tines.md)                    | Fan ratings in forks and tines (quarter forks)                  |
 | [0013](0013-cost-and-abuse-guardrails.md)           | Guardrails against bots and surprise bills; stats dashboard     |
+| [0014](0014-reporting-reviews.md)                   | Reporting reviews: signed-in, emailed, auto-hide at 3           |

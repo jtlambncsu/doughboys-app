@@ -11,8 +11,9 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { formatDate } from '@/lib/format';
 import { DisplayNameForm } from './DisplayNameForm';
 import { RatingForm } from './RatingForm';
+import { ReportDialog } from './ReportDialog';
 
-function Review({ rating }: { rating: FanRating }) {
+function Review({ rating, slug, mine }: { rating: FanRating; slug: string; mine: boolean }) {
   return (
     <article className="bg-card space-y-2 rounded-xl border p-3">
       <header className="flex items-baseline justify-between gap-2">
@@ -32,7 +33,18 @@ function Review({ rating }: { rating: FanRating }) {
           <span className="text-muted-foreground text-xs">{tineLabel(rating.forks)}</span>
         </div>
       </header>
-      {rating.review && <p className="text-sm whitespace-pre-line">{rating.review}</p>}
+      {rating.hidden ? (
+        <p className="text-muted-foreground text-sm italic">
+          This review is hidden while we look into reports about it.
+        </p>
+      ) : (
+        rating.review && <p className="text-sm whitespace-pre-line">{rating.review}</p>
+      )}
+      {!mine && !rating.hidden && (
+        <div className="-mb-1 flex justify-end">
+          <ReportDialog slug={slug} ratingId={rating.id} reviewer={rating.displayName} />
+        </div>
+      )}
     </article>
   );
 }
@@ -94,6 +106,10 @@ function RateIt({ slug, chainName }: { slug: string; chainName: string }) {
 export function FanRatings({ slug, chainName }: { slug: string; chainName: string }) {
   const { api } = useRouteContext({ from: '__root__' });
   const ratings = useQuery(chainRatingsQueryOptions(api, slug));
+  const fan = useFan();
+  // Your own review gets no Report button.
+  const mine = useQuery({ ...myRatingsQueryOptions(api), enabled: fan.status === 'signedIn' });
+  const myIds = new Set(mine.data?.map((r) => r.id));
 
   return (
     <section aria-labelledby="fan-ratings" className="space-y-3">
@@ -105,9 +121,9 @@ export function FanRatings({ slug, chainName }: { slug: string; chainName: strin
         <Skeleton className="h-24 w-full" />
       ) : ratings.data && ratings.data.ratings.length > 0 ? (
         <ol aria-label="Fan reviews" className="space-y-2">
-          {ratings.data.ratings.map((rating, i) => (
-            <li key={`${rating.displayName}-${i}`}>
-              <Review rating={rating} />
+          {ratings.data.ratings.map((rating) => (
+            <li key={rating.id}>
+              <Review rating={rating} slug={slug} mine={myIds.has(rating.id)} />
             </li>
           ))}
         </ol>

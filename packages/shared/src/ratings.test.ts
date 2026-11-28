@@ -4,6 +4,7 @@ import {
   displayNameSchema,
   forksAndTines,
   ratingInputSchema,
+  reportInputSchema,
   tineLabel,
 } from './ratings.js';
 
@@ -69,5 +70,19 @@ describe('tines', () => {
   ])('%d is %o, "%s"', (value, parts, label) => {
     expect(forksAndTines(value)).toEqual(parts);
     expect(tineLabel(value)).toBe(label);
+  });
+});
+
+describe('reportInputSchema', () => {
+  it('needs a known reason and limits the note', () => {
+    expect(reportInputSchema.parse({ reason: 'spam', note: '  buy pills  ' })).toEqual({
+      reason: 'spam',
+      note: 'buy pills',
+    });
+    expect(reportInputSchema.parse({ reason: 'other', note: '' })).toEqual({ reason: 'other' });
+    expect(reportInputSchema.safeParse({ reason: 'meh' }).success).toBe(false);
+    expect(reportInputSchema.safeParse({ reason: 'spam', note: 'x'.repeat(301) }).success).toBe(
+      false,
+    );
   });
 });

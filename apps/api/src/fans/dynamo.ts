@@ -1,4 +1,4 @@
-import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
+import { ConditionalCheckFailedException, DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import {
   DeleteCommand,
   DynamoDBDocumentClient,
@@ -6,9 +6,17 @@ import {
   paginateQuery,
   paginateScan,
   PutCommand,
+  UpdateCommand,
   type QueryCommandInput,
 } from '@aws-sdk/lib-dynamodb';
-import type { ProfileStore, RatingStore, StoredProfile, StoredRating } from './types.js';
+import type {
+  ProfileStore,
+  RatingStore,
+  ReportStore,
+  StoredProfile,
+  StoredRating,
+  StoredReport,
+} from './types.js';
 
 const documentClient = () =>
   DynamoDBDocumentClient.from(new DynamoDBClient({}), {
@@ -71,6 +79,79 @@ export class DynamoRatingStore implements RatingStore {
       items.push(...((page.Items ?? []) as StoredRating[]));
     }
     return items;
+  }
+
+  async addReport(chain: string, userId: string) {
+    const result = await this.client.send(
+      new UpdateCommand({
+        TableName: this.tableName,
+        Key: { chain, userId },
+        UpdateExpression: 'ADD reportCount :one',
+        ConditionExpression: 'attribute_exists(chain)', // don't create a rating by reporting it
+        ExpressionAttributeValues: { ':one': 1 },
+        ReturnValues: 'UPDATED_NEW',
+      }),
+    );
+    return Number(result.Attributes?.reportCount ?? 0);
+  }
+
+  async hide(chain: string, userId: string) {
+    await this.client.send(
+      new UpdateCommand({
+        TableName: this.tableName,
+        Key: { chain, userId },
+        UpdateExpression: 'SET hidden = :true',
+        ConditionExpression: 'attribute_exists(chain)',
+        ExpressionAttributeValues: { ':true': true },
+      }),
+    );
+  }
+}
+
+/** Reports keyed by (ratingId, reporterId), with a `byReporter` index for account deletion. */
+export class DynamoReportStore implements ReportStore {
+  constructor(
+    private readonly tableName: string,
+    private readonly client = documentClient(),
+  ) {}
+
+  async add(report: StoredReport) {
+    try {
+      await this.client.send(
+        new PutCommand({
+          TableName: this.tableName,
+          Item: report,
+          // One report per fan per review, enforced by the database.
+          ConditionExpression: 'attribute_not_exists(ratingId)',
+        }),
+      );
+      return true;
+    } catch (error) {
+      if (error instanceof ConditionalCheckFailedException) return false;
+      throw error;
+    }
+  }
+
+  async forReporter(reporterId: string) {
+    const items: StoredReport[] = [];
+    for await (const page of paginateQuery(
+      { client: this.client },
+      {
+        TableName: this.tableName,
+        IndexName: 'byReporter',
+        KeyConditionExpression: 'reporterId = :r',
+        ExpressionAttributeValues: { ':r': reporterId },
+      },
+    )) {
+      items.push(...((page.Items ?? []) as StoredReport[]));
+    }
+    return items;
+  }
+
+  async delete(ratingId: string, reporterId: string) {
+    await this.client.send(
+      new DeleteCommand({ TableName: this.tableName, Key: { ratingId, reporterId } }),
+    );
   }
 }
 

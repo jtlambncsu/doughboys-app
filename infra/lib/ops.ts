@@ -18,7 +18,7 @@ import { AttributeType, Billing, type TableV2, TableV2 as Table } from 'aws-cdk-
 import { Rule, Schedule } from 'aws-cdk-lib/aws-events';
 import { LambdaFunction } from 'aws-cdk-lib/aws-events-targets';
 import { PolicyStatement } from 'aws-cdk-lib/aws-iam';
-import type { IFunction } from 'aws-cdk-lib/aws-lambda';
+import type { Function as LambdaFunctionResource, IFunction } from 'aws-cdk-lib/aws-lambda';
 import { NodejsFunction, type NodejsFunctionProps } from 'aws-cdk-lib/aws-lambda-nodejs';
 import { FilterPattern, LogGroup, MetricFilter, RetentionDays } from 'aws-cdk-lib/aws-logs';
 import { Subscription, SubscriptionProtocol, Topic } from 'aws-cdk-lib/aws-sns';
@@ -30,7 +30,8 @@ export interface OpsProps {
   ratings: TableV2;
   profiles: TableV2;
   api: HttpApi;
-  apiFn: IFunction;
+  /** The API function: it also emails report notifications through the alerts topic. */
+  apiFn: LambdaFunctionResource;
   importFn: IFunction;
   /** Shared Lambda settings (runtime, bundling) from the stack. */
   functionDefaults: Partial<NodejsFunctionProps>;
@@ -217,6 +218,10 @@ export class Ops extends Construct {
       protocol: SubscriptionProtocol.EMAIL,
       endpoint: props.alertEmail,
     });
+    // Review reports are emailed through the same topic (ADR 0014).
+    props.apiFn.addEnvironment('ALERTS_TOPIC_ARN', topic.topicArn);
+    topic.grantPublish(props.apiFn);
+
     const alarm = (
       id: string,
       description: string,

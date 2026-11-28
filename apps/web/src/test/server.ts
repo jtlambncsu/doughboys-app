@@ -18,7 +18,7 @@ import {
 const TEST_TOKEN = 'test-token';
 
 /** Other fans' ratings in tests carry a made-up owner; the test fan's are 'me'. */
-type FakeRating = FanRating & { chain: string; owner: string };
+type FakeRating = FanRating & { chain: string; owner: string; reportedBy?: string[] };
 
 /**
  * A tiny in-memory fake of our API. Tests talk to it through real `fetch` calls, which MSW
@@ -34,6 +34,8 @@ export const db = {
   /** Rating bodies the app sent, to check what the form submits. */
   ratingRequests: [] as RatingInput[],
   accountDeleted: false,
+  /** Report bodies the app sent. */
+  reportRequests: [] as unknown[],
   /** How many times the app saved the profile. */
   profileSaves: 0,
   reset() {
@@ -44,10 +46,12 @@ export const db = {
     this.fanRatings = [];
     this.ratingRequests = [];
     this.accountDeleted = false;
+    this.reportRequests = [];
   },
   /** Another fan's rating, for chain pages and audience scores. */
   addFanRating(chain: string, rating: Partial<FanRating> & { displayName: string; forks: number }) {
     this.fanRatings.push({
+      id: crypto.randomUUID(),
       updatedAt: '2026-12-01T00:00:00Z',
       ...rating,
       chain,
@@ -115,7 +119,8 @@ export const handlers = [
 
 export const server = setupServer(...handlers);
 
-const publicRating = ({ chain: _c, owner: _o, ...rating }: FakeRating): FanRating => rating;
+const publicRating = ({ chain: _c, owner: _o, reportedBy: _r, ...rating }: FakeRating): FanRating =>
+  rating;
 const signedIn = (request: Request) =>
   request.headers.get('authorization') === `Bearer ${TEST_TOKEN}`;
 const unauthorized = () => HttpResponse.json({ error: 'Not signed in' }, { status: 401 });
@@ -180,16 +185,32 @@ function fanHandlers() {
       if (!db.displayName) {
         return HttpResponse.json({ error: 'Choose a display name before rating' }, { status: 409 });
       }
-      db.fanRatings = db.fanRatings.filter((r) => !(r.chain === slug && r.owner === 'me'));
+      const previous = db.fanRatings.find((r) => r.chain === slug && r.owner === 'me');
       const rating: FakeRating = {
+        id: previous?.id ?? crypto.randomUUID(),
         ...parsed.data,
         displayName: db.displayName,
         updatedAt: new Date().toISOString(),
         chain: slug,
         owner: 'me',
       };
+      db.fanRatings = db.fanRatings.filter((r) => !(r.chain === slug && r.owner === 'me'));
       db.fanRatings.push(rating);
       return HttpResponse.json(publicRating(rating));
+    }),
+    http.post('/api/chains/:slug/ratings/:id/report', async ({ request, params }) => {
+      if (!signedIn(request)) return unauthorized();
+      const rating = db.fanRatings.find((r) => r.chain === params.slug && r.id === params.id);
+      if (!rating) return HttpResponse.json({ error: 'Review not found' }, { status: 404 });
+      if (rating.owner === 'me') {
+        return HttpResponse.json({ error: 'You can’t report your own review' }, { status: 400 });
+      }
+      if (rating.reportedBy?.includes('me')) {
+        return HttpResponse.json({ error: 'You’ve already reported this review' }, { status: 409 });
+      }
+      db.reportRequests.push(await request.json());
+      rating.reportedBy = [...(rating.reportedBy ?? []), 'me'];
+      return HttpResponse.json({ hidden: false }, { status: 201 });
     }),
     http.delete('/api/chains/:slug/rating', ({ request, params }) => {
       if (!signedIn(request)) return unauthorized();

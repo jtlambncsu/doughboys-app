@@ -3,7 +3,13 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import type { Episode } from '@doughboys-app/shared';
 import { createApp } from '../app.js';
 import type { ResolveUser } from '../auth.js';
-import { FakeAccountDirectory, InMemoryProfileStore, InMemoryRatingStore } from '../fans/memory.js';
+import {
+  FakeAccountDirectory,
+  FakeReportNotifier,
+  InMemoryProfileStore,
+  InMemoryRatingStore,
+  InMemoryReportStore,
+} from '../fans/memory.js';
 import { InMemoryEpisodeStore } from '../stores/memory.js';
 
 /** Tests say who's signed in with a header; in AWS it's the verified Cognito token. */
@@ -24,6 +30,8 @@ const episode = (slug: string, overrides: Partial<Episode> = {}): Episode => ({
 let ratings: InMemoryRatingStore;
 let profiles: InMemoryProfileStore;
 let accounts: FakeAccountDirectory;
+let reports: InMemoryReportStore;
+let notifier: FakeReportNotifier;
 let app: ReturnType<typeof createApp>;
 let now: Date;
 
@@ -31,6 +39,8 @@ beforeEach(() => {
   ratings = new InMemoryRatingStore();
   profiles = new InMemoryProfileStore();
   accounts = new FakeAccountDirectory();
+  reports = new InMemoryReportStore();
+  notifier = new FakeReportNotifier();
   now = new Date('2026-12-01T12:00:00Z');
   app = createApp({
     store: new InMemoryEpisodeStore([
@@ -57,6 +67,8 @@ beforeEach(() => {
     ratingStore: ratings,
     profileStore: profiles,
     accounts,
+    reportStore: reports,
+    notifier,
     resolveUser: fromHeader,
     cacheMs: 0,
     clock: () => now,
@@ -249,5 +261,107 @@ describe('deleting an account', () => {
     } as never);
     const res = await request(app).get('/api/chains/taco-bell/ratings').expect(200);
     expect(res.body.ratings[0]).not.toHaveProperty('ordered');
+  });
+});
+
+describe('reporting a review', () => {
+  async function reviewBy(user: string, review = 'Terrible! Visit my-spam-site.example') {
+    await signUp(user, `Fan ${user}`);
+    await rate(user, 'taco-bell', { forks: 1, review, location: 'Somewhere' }).expect(200);
+    const res = await request(app).get('/api/chains/taco-bell/ratings').expect(200);
+    return res.body.ratings.find((r: { displayName: string }) => r.displayName === `Fan ${user}`)
+      .id as string;
+  }
+  const report = (user: string, id: string, body: object = { reason: 'spam' }) =>
+    request(app).post(`/api/chains/taco-bell/ratings/${id}/report`).set(as(user)).send(body);
+
+  it('gives every review a public ID that isn’t the account ID', async () => {
+    const id = await reviewBy('author');
+    expect(id).toMatch(/^[0-9a-f-]{36}$/);
+    expect(id).not.toContain('author');
+  });
+
+  it('needs a signed-in fan, a valid reason and an existing review', async () => {
+    const id = await reviewBy('author');
+    await request(app)
+      .post(`/api/chains/taco-bell/ratings/${id}/report`)
+      .send({ reason: 'spam' })
+      .expect(401);
+    await report('alice', id, { reason: 'boring' }).expect(400);
+    await report('alice', 'no-such-review').expect(404);
+  });
+
+  it('records one report per fan, refuses self-reports, and emails the owner', async () => {
+    const id = await reviewBy('author');
+    await report('author', id).expect(400);
+    await report('alice', id, { reason: 'spam', note: 'Advertising' }).expect(201, {
+      hidden: false,
+    });
+    await report('alice', id).expect(409);
+
+    expect(notifier.sent).toEqual([
+      expect.objectContaining({
+        chain: 'taco-bell',
+        chainName: 'Taco Bell',
+        reason: 'spam',
+        note: 'Advertising',
+        reportCount: 1,
+        hidden: false,
+      }),
+    ]);
+    expect(notifier.sent[0]!.rating.review).toContain('my-spam-site');
+  });
+
+  it('hides the text after three reports, keeps it hidden through edits, and still counts the forks', async () => {
+    const id = await reviewBy('author');
+    await report('a', id).expect(201, { hidden: false });
+    await report('b', id).expect(201, { hidden: false });
+    await report('c', id).expect(201, { hidden: true });
+
+    const after = await request(app).get('/api/chains/taco-bell/ratings').expect(200);
+    expect(after.body.ratings[0]).toEqual({
+      id,
+      displayName: 'Fan author',
+      forks: 1,
+      updatedAt: expect.any(String),
+      hidden: true,
+    });
+    expect(after.body.audience.count).toBe(1);
+
+    await rate('author', 'taco-bell', { forks: 2, review: 'Totally innocent now' }).expect(200);
+    const edited = await request(app).get('/api/chains/taco-bell/ratings').expect(200);
+    expect(edited.body.ratings[0]).toMatchObject({ id, hidden: true, forks: 2 });
+    expect(edited.body.ratings[0]).not.toHaveProperty('review');
+  });
+
+  it('never reveals who reported', async () => {
+    const id = await reviewBy('author');
+    await report('secret-reporter', id).expect(201);
+    const res = await request(app).get('/api/chains/taco-bell/ratings').expect(200);
+    expect(JSON.stringify(res.body)).not.toContain('secret-reporter');
+    expect(JSON.stringify(notifier.sent)).not.toContain('secret-reporter');
+  });
+
+  it('deletes the reports a fan made when they delete their account', async () => {
+    const id = await reviewBy('author');
+    await signUp('alice', 'Alice');
+    await report('alice', id).expect(201);
+    await request(app).delete('/api/me').set(as('alice')).expect(204);
+    expect(await reports.forReporter('alice')).toEqual([]);
+  });
+
+  it('gives older ratings without an ID one, once', async () => {
+    await ratings.put({
+      chain: 'taco-bell',
+      userId: 'old',
+      displayName: 'Old',
+      forks: 3,
+      createdAt: '2026-11-01T00:00:00Z',
+      updatedAt: '2026-11-01T00:00:00Z',
+    });
+    const first = await request(app).get('/api/chains/taco-bell/ratings').expect(200);
+    const second = await request(app).get('/api/chains/taco-bell/ratings').expect(200);
+    expect(first.body.ratings[0].id).toBeTruthy();
+    expect(second.body.ratings[0].id).toBe(first.body.ratings[0].id);
   });
 });

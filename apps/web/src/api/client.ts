@@ -8,6 +8,7 @@ import type {
   MyRating,
   Profile,
   RatingInput,
+  ReportInput,
 } from '@doughboys-app/shared';
 
 /**
@@ -30,7 +31,7 @@ function messageFor(status: number, body: unknown) {
   if (status === 400 && error.issues?.length) return error.issues[0]!.message;
   if (status === 401) return 'Your session has expired. Sign in again.';
   if (status === 404) return 'Not found';
-  if (status === 409 && error.error) return error.error;
+  if ((status === 409 || status === 400) && error.error) return error.error;
   return `Request failed: ${status}`;
 }
 
@@ -86,6 +87,11 @@ export function createDoughboysApi(getAccessToken: GetAccessToken = async () => 
     deleteRating: (slug: string) =>
       request<void>(`${chainPath(slug)}/rating`, { method: 'DELETE', auth: true }),
     deleteAccount: () => request<void>('/me', { method: 'DELETE', auth: true }),
+    report: (slug: string, ratingId: string, input: ReportInput) =>
+      request<{ hidden: boolean }>(
+        `${chainPath(slug)}/ratings/${encodeURIComponent(ratingId)}/report`,
+        { method: 'POST', body: input, auth: true },
+      ),
   };
 }
 

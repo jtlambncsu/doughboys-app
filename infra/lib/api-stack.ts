@@ -86,6 +86,23 @@ export class ApiStack extends Stack {
       removalPolicy: RemovalPolicy.RETAIN,
     });
 
+    // Fans' reports of reviews (ADR 0014): one per (review, reporter), enforced by the key.
+    // byReporter finds a fan's reports when they delete their account.
+    const reports = new TableV2(this, 'Reports', {
+      partitionKey: { name: 'ratingId', type: AttributeType.STRING },
+      sortKey: { name: 'reporterId', type: AttributeType.STRING },
+      globalSecondaryIndexes: [
+        {
+          indexName: 'byReporter',
+          partitionKey: { name: 'reporterId', type: AttributeType.STRING },
+          sortKey: { name: 'ratingId', type: AttributeType.STRING },
+        },
+      ],
+      billing: Billing.onDemand(),
+      pointInTimeRecoverySpecification: { pointInTimeRecoveryEnabled: true },
+      removalPolicy: RemovalPolicy.RETAIN,
+    });
+
     // Public display names, chosen by each fan.
     const profiles = new TableV2(this, 'Profiles', {
       partitionKey: { name: 'userId', type: AttributeType.STRING },
@@ -116,6 +133,7 @@ export class ApiStack extends Stack {
         ...shared.environment,
         RATINGS_TABLE: ratings.tableName,
         PROFILES_TABLE: profiles.tableName,
+        REPORTS_TABLE: reports.tableName,
         USER_POOL_ID: auth.userPool.userPoolId,
         ...(props.allowedOrigins?.length && { ALLOWED_ORIGINS: props.allowedOrigins.join(',') }),
       },
@@ -128,6 +146,7 @@ export class ApiStack extends Stack {
     chains.grantReadData(apiFn);
     ratings.grantReadWriteData(apiFn);
     profiles.grantReadWriteData(apiFn);
+    reports.grantReadWriteData(apiFn);
     // "Delete my account" removes the Cognito user too. Only that action, only this pool.
     apiFn.addToRolePolicy(
       new PolicyStatement({
@@ -170,7 +189,12 @@ export class ApiStack extends Stack {
         allowOrigins: props.allowedOrigins?.length ? props.allowedOrigins : ['*'],
         // Every method and header the web app sends. One missing here makes the browser
         // block the request, even though the API itself supports it.
-        allowMethods: [CorsHttpMethod.GET, CorsHttpMethod.PUT, CorsHttpMethod.DELETE],
+        allowMethods: [
+          CorsHttpMethod.GET,
+          CorsHttpMethod.POST,
+          CorsHttpMethod.PUT,
+          CorsHttpMethod.DELETE,
+        ],
         allowHeaders: ['authorization', 'content-type'],
         maxAge: Duration.days(1),
       },
@@ -186,6 +210,7 @@ export class ApiStack extends Stack {
       ['/api/me', [HttpMethod.GET, HttpMethod.PUT, HttpMethod.DELETE]],
       ['/api/me/ratings', [HttpMethod.GET]],
       ['/api/chains/{slug}/rating', [HttpMethod.PUT, HttpMethod.DELETE]],
+      ['/api/chains/{slug}/ratings/{id}/report', [HttpMethod.POST]],
     ];
     for (const [path, methods] of signedIn) {
       api.addRoutes({ path, methods, integration, authorizer });

@@ -49,7 +49,7 @@ describe('ApiStack', () => {
     // Keep in sync with apps/web/src/api/client.ts.
     template.hasResourceProperties('AWS::ApiGatewayV2::Api', {
       CorsConfiguration: Match.objectLike({
-        AllowMethods: ['GET', 'PUT', 'DELETE'],
+        AllowMethods: ['GET', 'POST', 'PUT', 'DELETE'],
         AllowHeaders: ['authorization', 'content-type'],
         AllowOrigins: ['https://forks.example'],
       }),
@@ -64,6 +64,7 @@ describe('ApiStack', () => {
       'GET /api/me/ratings',
       'PUT /api/chains/{slug}/rating',
       'DELETE /api/chains/{slug}/rating',
+      'POST /api/chains/{slug}/ratings/{id}/report',
     ]) {
       template.hasResourceProperties('AWS::ApiGatewayV2::Route', {
         RouteKey: routeKey,
@@ -221,6 +222,30 @@ describe('guardrails (ADR 0013)', () => {
     withAlerts.resourceCountIs('AWS::CloudWatch::Alarm', 3);
     withAlerts.hasResourceProperties('AWS::Budgets::Budget', {
       Budget: Match.objectLike({ BudgetLimit: { Amount: 10, Unit: 'USD' }, TimeUnit: 'MONTHLY' }),
+    });
+  });
+
+  it('lets the API email review reports through the alerts topic', () => {
+    withAlerts.hasResourceProperties('AWS::Lambda::Function', {
+      Environment: { Variables: Match.objectLike({ ALERTS_TOPIC_ARN: Match.anyValue() }) },
+    });
+    withAlerts.hasResourceProperties('AWS::IAM::Policy', {
+      PolicyDocument: {
+        Statement: Match.arrayWith([Match.objectLike({ Action: 'sns:Publish' })]),
+      },
+    });
+  });
+
+  it('keeps reports, one per review per reporter, findable by reporter', () => {
+    withAlerts.hasResource('AWS::DynamoDB::GlobalTable', {
+      Properties: Match.objectLike({
+        KeySchema: [
+          { AttributeName: 'ratingId', KeyType: 'HASH' },
+          { AttributeName: 'reporterId', KeyType: 'RANGE' },
+        ],
+        GlobalSecondaryIndexes: [Match.objectLike({ IndexName: 'byReporter' })],
+      }),
+      DeletionPolicy: 'Retain',
     });
   });
 

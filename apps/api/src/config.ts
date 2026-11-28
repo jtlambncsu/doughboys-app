@@ -7,8 +7,15 @@ import { DynamoChainStore } from './chains/dynamo.js';
 import { InMemoryChainStore } from './chains/memory.js';
 import type { ChainClassifier, ChainStore } from './chains/types.js';
 import { CognitoAccountDirectory } from './fans/cognito.js';
-import { DynamoProfileStore, DynamoRatingStore } from './fans/dynamo.js';
-import { FakeAccountDirectory, InMemoryProfileStore, InMemoryRatingStore } from './fans/memory.js';
+import { DynamoProfileStore, DynamoRatingStore, DynamoReportStore } from './fans/dynamo.js';
+import { SnsReportNotifier } from './fans/sns.js';
+import {
+  FakeAccountDirectory,
+  FakeReportNotifier,
+  InMemoryProfileStore,
+  InMemoryRatingStore,
+  InMemoryReportStore,
+} from './fans/memory.js';
 import { DynamoEpisodeStore } from './stores/dynamo.js';
 import { InMemoryEpisodeStore } from './stores/memory.js';
 import type { EpisodeStore } from './stores/types.js';
@@ -59,6 +66,13 @@ export function depsFromEnv(env: NodeJS.ProcessEnv = process.env): AppDeps {
     profileStore: env.PROFILES_TABLE
       ? new DynamoProfileStore(env.PROFILES_TABLE)
       : new InMemoryProfileStore(),
+    reportStore: env.REPORTS_TABLE
+      ? new DynamoReportStore(env.REPORTS_TABLE)
+      : new InMemoryReportStore(),
+    // Without an alerts topic (no ALERT_EMAIL), reports are still saved, just not emailed.
+    notifier: env.ALERTS_TOPIC_ARN
+      ? new SnsReportNotifier(env.ALERTS_TOPIC_ARN)
+      : new FakeReportNotifier(),
     accounts: env.USER_POOL_ID
       ? new CognitoAccountDirectory(env.USER_POOL_ID)
       : new FakeAccountDirectory(),

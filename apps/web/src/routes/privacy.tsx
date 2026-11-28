@@ -24,17 +24,23 @@ function Privacy() {
         </li>
         <li>
           <strong>What we store:</strong> those, plus an anonymous account ID that links them to
-          you. Nothing else.
+          you, and any reports you make about reviews. Nothing else.
         </li>
         <li>
           <strong>Your sign-in</strong> is kept in this browser so you stay signed in. Signing out
           removes it.
         </li>
       </ul>
+      <h2 className="font-heading text-lg font-semibold">Reports</h2>
+      <p>
+        Signed-in fans can report reviews. Reports are private: the reviewer never sees who reported
+        them. Reviews reported by three fans are hidden until we look at them.
+      </p>
       <h2 className="font-heading text-lg font-semibold">Deleting your data</h2>
       <p>
         On your account page, “Delete my account” permanently removes your account, display name,
-        ratings and reviews. Backups that allow recovery from mistakes expire within 35 days.
+        ratings, reviews and the reports you made. Backups that allow recovery from mistakes expire
+        within 35 days.
       </p>
     </article>
   );

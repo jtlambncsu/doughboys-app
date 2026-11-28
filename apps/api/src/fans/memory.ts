@@ -2,8 +2,11 @@ import type {
   AccountDirectory,
   ProfileStore,
   RatingStore,
+  ReportNotifier,
+  ReportStore,
   StoredProfile,
   StoredRating,
+  StoredReport,
 } from './types.js';
 
 export class InMemoryRatingStore implements RatingStore {
@@ -27,6 +30,41 @@ export class InMemoryRatingStore implements RatingStore {
   }
   async all() {
     return [...this.ratings.values()];
+  }
+  async addReport(chain: string, userId: string) {
+    const rating = this.ratings.get(this.key(chain, userId));
+    if (!rating) return 0;
+    rating.reportCount = (rating.reportCount ?? 0) + 1;
+    return rating.reportCount;
+  }
+  async hide(chain: string, userId: string) {
+    const rating = this.ratings.get(this.key(chain, userId));
+    if (rating) rating.hidden = true;
+  }
+}
+
+export class InMemoryReportStore implements ReportStore {
+  readonly reports = new Map<string, StoredReport>();
+  private key = (ratingId: string, reporterId: string) => `${ratingId}\u0000${reporterId}`;
+  async add(report: StoredReport) {
+    const key = this.key(report.ratingId, report.reporterId);
+    if (this.reports.has(key)) return false;
+    this.reports.set(key, { ...report });
+    return true;
+  }
+  async forReporter(reporterId: string) {
+    return [...this.reports.values()].filter((r) => r.reporterId === reporterId);
+  }
+  async delete(ratingId: string, reporterId: string) {
+    this.reports.delete(this.key(ratingId, reporterId));
+  }
+}
+
+/** Local development and tests: remembers what it would have emailed. */
+export class FakeReportNotifier implements ReportNotifier {
+  readonly sent: Parameters<ReportNotifier['notify']>[0][] = [];
+  async notify(report: Parameters<ReportNotifier['notify']>[0]) {
+    this.sent.push(report);
   }
 }
 

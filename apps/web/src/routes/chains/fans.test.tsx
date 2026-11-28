@@ -117,6 +117,7 @@ describe('rating a chain', () => {
     seedTacoBell();
     db.displayName = 'Spoon Fan';
     db.fanRatings.push({
+      id: 'my-review',
       chain: 'taco-bell',
       owner: 'me',
       displayName: 'Spoon Fan',
@@ -189,6 +190,7 @@ describe('account page', () => {
     seedTacoBell();
     db.displayName = 'Spoon Fan';
     db.fanRatings.push({
+      id: 'my-review',
       chain: 'taco-bell',
       owner: 'me',
       displayName: 'Spoon Fan',
@@ -227,5 +229,68 @@ describe('account page', () => {
     expect(db.accountDeleted).toBe(true);
     expect(fan.forget).toHaveBeenCalled();
     expect(router.state.location.pathname).toBe('/');
+  });
+});
+
+describe('reporting reviews', () => {
+  it('reports another fan’s review with a reason and note', async () => {
+    seedTacoBell();
+    db.displayName = 'Spoon Fan';
+    db.addFanRating('taco-bell', { displayName: 'Spammer', forks: 1, review: 'Visit my site' });
+    renderApp(page);
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Report Spammer’s review' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Report this review' });
+    const send = within(dialog).getByRole('button', { name: 'Send report' });
+    expect(send).toBeDisabled();
+
+    await userEvent.click(within(dialog).getByRole('radio', { name: 'Spam or advertising' }));
+    await userEvent.type(within(dialog).getByLabelText('Anything to add? (optional)'), 'An ad');
+    await userEvent.click(send);
+
+    expect((await screen.findAllByText('Thanks. We’ll take a look.')).length).toBeGreaterThan(0);
+    expect(db.reportRequests).toEqual([{ reason: 'spam', note: 'An ad' }]);
+    expect(await screen.findByText('Reported')).toBeInTheDocument();
+  });
+
+  it('doesn’t offer Report on your own review', async () => {
+    seedTacoBell();
+    db.displayName = 'Spoon Fan';
+    db.fanRatings.push({
+      id: 'my-review',
+      chain: 'taco-bell',
+      owner: 'me',
+      displayName: 'Spoon Fan',
+      forks: 4,
+      updatedAt: '2026-12-01T00:00:00Z',
+    });
+    db.addFanRating('taco-bell', { displayName: 'Other Fan', forks: 3 });
+    renderApp(page);
+
+    expect(
+      await screen.findByRole('button', { name: 'Report Other Fan’s review' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Report Spoon Fan’s review' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('asks signed-out visitors to sign in', async () => {
+    seedTacoBell();
+    db.addFanRating('taco-bell', { displayName: 'Other Fan', forks: 3 });
+    const { fan } = renderApp(page, { signedIn: false });
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Report Other Fan’s review' }));
+    expect(fan.signIn).toHaveBeenCalled();
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  it('shows hidden reviews as hidden, without a Report button', async () => {
+    seedTacoBell();
+    db.addFanRating('taco-bell', { displayName: 'Hidden Fan', forks: 1, hidden: true });
+    renderApp(page, { signedIn: false });
+
+    expect(await screen.findByText(/hidden while we look into reports/)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Report Hidden Fan/ })).not.toBeInTheDocument();
   });
 });

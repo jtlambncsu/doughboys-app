@@ -68,12 +68,16 @@ export type ValidRating = z.output<typeof ratingInputSchema>;
 
 /** A fan's rating as anyone can see it. No account ID: just the chosen display name. */
 export interface FanRating {
+  /** A random public ID for the review (for reporting). Not linked to the account. */
+  id: string;
   displayName: string;
   forks: number;
   review?: string;
   location?: string;
   /** ISO timestamp. */
   updatedAt: string;
+  /** Hidden after reports until the owner reviews it: no review text or location shown. */
+  hidden?: true;
 }
 
 /** One of your own ratings, with the chain it's for. */
@@ -99,3 +103,23 @@ export function audienceScore(forks: number[]): AudienceScore {
   const mean = forks.reduce((sum, f) => sum + f, 0) / forks.length;
   return { average: Math.round(mean * 100) / 100, count: forks.length };
 }
+
+/** Reports from this many different fans hide a review's text until it's moderated. */
+export const REPORTS_TO_HIDE = 3;
+
+export const reportReasonSchema = z.enum(['spam', 'offensive', 'off_topic', 'other']);
+export type ReportReason = z.infer<typeof reportReasonSchema>;
+
+export const REPORT_REASONS: Record<ReportReason, string> = {
+  spam: 'Spam or advertising',
+  offensive: 'Offensive or hateful',
+  off_topic: 'Not about this place',
+  other: 'Something else',
+};
+
+/** What a fan sends to report a review. */
+export const reportInputSchema = z.object({
+  reason: reportReasonSchema,
+  note: optionalText(300),
+});
+export type ReportInput = z.input<typeof reportInputSchema>;

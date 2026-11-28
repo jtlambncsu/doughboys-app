@@ -4,8 +4,20 @@ import { noUser, type ResolveUser } from './auth.js';
 import { createCatalog } from './catalog.js';
 import { InMemoryChainStore } from './chains/memory.js';
 import type { ChainStore } from './chains/types.js';
-import { FakeAccountDirectory, InMemoryProfileStore, InMemoryRatingStore } from './fans/memory.js';
-import type { AccountDirectory, ProfileStore, RatingStore } from './fans/types.js';
+import {
+  FakeAccountDirectory,
+  FakeReportNotifier,
+  InMemoryProfileStore,
+  InMemoryRatingStore,
+  InMemoryReportStore,
+} from './fans/memory.js';
+import type {
+  AccountDirectory,
+  ProfileStore,
+  RatingStore,
+  ReportNotifier,
+  ReportStore,
+} from './fans/types.js';
 import { episodesRouter } from './routes/episodes.js';
 import { fansRouter } from './routes/fans.js';
 import { InMemoryEpisodeStore } from './stores/memory.js';
@@ -18,6 +30,9 @@ export interface AppDeps {
   ratingStore?: RatingStore;
   profileStore?: ProfileStore;
   accounts?: AccountDirectory;
+  reportStore?: ReportStore;
+  /** Emails the owner about reports. */
+  notifier?: ReportNotifier;
   /** Who's signed in. Defaults to nobody, so a misconfigured app fails closed. */
   resolveUser?: ResolveUser;
   /** Origins allowed to call the API from a browser. Omit to allow any origin. */
@@ -33,6 +48,8 @@ export function createApp({
   ratingStore = new InMemoryRatingStore(),
   profileStore = new InMemoryProfileStore(),
   accounts = new FakeAccountDirectory(),
+  reportStore = new InMemoryReportStore(),
+  notifier = new FakeReportNotifier(),
   resolveUser = noUser,
   allowedOrigins,
   cacheMs = 5 * 60 * 1000,
@@ -57,6 +74,8 @@ export function createApp({
       ratings: ratingStore,
       profiles: profileStore,
       accounts,
+      reports: reportStore,
+      notifier,
       resolveUser,
       clock,
     }),
