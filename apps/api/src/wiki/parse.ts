@@ -196,7 +196,10 @@ export function parseRestaurantsPage(wikitext: string): Map<string, RestaurantEn
       const page = row.Episode?.links?.find((link) => link.page)?.page;
       if (!restaurant || !page) continue;
       const key = normalizeTitle(page);
-      const rating = parseForks(row.Rating?.text ?? '') ?? undefined;
+      // Fans' averages there count joke scores ("6 pitchforks"); outside 0-5 we ignore
+      // them and keep our own average of the episode's in-range ratings.
+      const parsed = parseForks(row.Rating?.text ?? '');
+      const rating = parsed !== null && parsed >= 0 && parsed <= 5 ? parsed : undefined;
       if (!byEpisode.has(key) || (rating !== undefined && !rated.has(key))) {
         byEpisode.set(key, rating === undefined ? { restaurant } : { restaurant, rating });
         if (rating !== undefined) rated.add(key);

@@ -92,6 +92,14 @@ describe('parseRestaurantsPage', () => {
     expect(map.get('The Beer Store with Norm Sousa')).toEqual({ restaurant: 'A&W Canada' });
   });
 
+  it('ignores list averages above 5 (they count joke scores)', () => {
+    const wikitext =
+      '{|\n!Restaurant\n!Rating\n!Release Date\n!Episode\n!notes\n|-\n|Zankou Chicken\n|5.67\n|Oct 12, 2023\n|[[Zankou Chicken with Jason Mantzoukas|419]]\n|\n|}';
+    expect(parseRestaurantsPage(wikitext).get('Zankou Chicken with Jason Mantzoukas')).toEqual({
+      restaurant: 'Zankou Chicken',
+    });
+  });
+
   it('normalizes non-breaking spaces in names', () => {
     const wikitext =
       '{|\n!Restaurant\n!Rating\n!Release Date\n!Episode\n!notes\n|-\n|Sweetfin\u00a0Poké\n|4.00\n|May 1, 2019\n|[[Sweetfin Poké with Someone|200]]\n|\n|}';

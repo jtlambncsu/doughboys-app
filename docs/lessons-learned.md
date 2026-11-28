@@ -206,3 +206,26 @@ Cognito checks image shapes: logos must be between 1:1 and 4:1, favicons exactly
 **Fix:** Drop assets that have a `ResourceId` (provider buttons) before saving, widen the SVG
 canvases (logo 300×80, favicon 44×44) without changing the drawing, and add an infra test that
 checks the ratios so the next logo tweak fails in CI instead of in CloudFormation.
+
+## Shared links showed Vercel's 404 page
+
+**Symptom:** The home page worked, and clicking around worked, but opening any other address
+directly (a shared chain link, a refresh, `/privacy`) showed Vercel's "404: NOT_FOUND".
+
+**Cause:** The app is a single-page app: there's only one real file, `index.html`, and the
+router draws each page in the browser. Vercel looked for a file called `/chains/taco-bell`,
+found none and returned 404. Puzzle Log has an `apps/web/vercel.json` that sends every path
+to `index.html`; this repo never got one. No test catches it because it's hosting config.
+
+**Fix:** Added the same `apps/web/vercel.json` rewrite. Real files (JS, CSS, images) are still
+served first; everything else gets the app, which shows its own "not found" page.
+
+## Leaderboard scores above 5 forks
+
+**Symptom:** The top of the leaderboard showed Zankou Chicken at 5.67 forks.
+
+**Cause:** The wiki's Restaurants list has a fan-calculated average per episode, which we
+prefer over our own. For Zankou it averaged in joke scores ("6 pitchforks"). Our own average
+already skipped those; the list's didn't.
+
+**Fix:** List averages outside 0-5 are ignored, so our in-range average is used instead.
