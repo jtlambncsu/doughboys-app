@@ -1,7 +1,11 @@
 import '@testing-library/jest-dom/vitest';
-import { cleanup } from '@testing-library/react';
+import { cleanup, configure } from '@testing-library/react';
 import { afterAll, afterEach, beforeAll } from 'vitest';
 import { db, server } from './test/server';
+
+// The first test to open a page loads its code (and libraries like the chart) for the first
+// time, which can take over a second on CI's slower machines. findBy* waits 1s by default.
+configure({ asyncUtilTimeout: 3000 });
 
 // Fail loudly if a test makes a request no handler expects.
 beforeAll(() => server.listen({ onUnhandledFrame: 'error' }));

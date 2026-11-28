@@ -176,3 +176,19 @@ by hand (GitHub: the workflow run → ⋯ → Delete all logs).
 
 **Takeaway:** "not in the repo" isn't "private" when CI logs are public. Check what your tools
 print, not just what you commit.
+
+## A test that only failed in CI
+
+**Symptom:** CI's check step failed on "asks signed-out fans to sign in": `Unable to find
+role="button" and name "Sign in to rate"`. It passed locally, every time, and the deploy
+(the sign-in page branding) was skipped.
+
+**Cause:** it's the first test in its file, so it's the one that loads the chain page's
+code, including the chart library, for the first time. On GitHub's slower runners that took
+1.2 seconds, and Testing Library's `findBy…` queries give up after 1 second by default.
+
+**Fix:** `configure({ asyncUtilTimeout: 3000 })` in `setupTests.ts`. Passing tests aren't
+slowed down: `findBy…` returns as soon as the element appears.
+
+**Takeaway:** a test that times out only in CI is usually measuring the machine, not the
+code. Read the duration next to the failure (here 1194 ms against a 1000 ms limit).
