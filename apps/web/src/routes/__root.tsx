@@ -10,6 +10,7 @@ import { CircleUser, Utensils } from 'lucide-react';
 import { logosEnabled } from '@/lib/logos';
 import { useFan } from '@/auth/fan';
 import { ErrorState } from '@/components/ErrorState';
+import { ApiError } from '@/api/client';
 import { Button } from '@/components/ui/button';
 import type { RouterContext } from '@/router';
 
@@ -120,6 +121,14 @@ function RootLayout() {
 function RootError({ error }: ErrorComponentProps) {
   const router = useRouter();
   const { reset } = useQueryErrorResetBoundary();
+  // A link to a chain or episode that doesn't exist (or no longer does).
+  if (error instanceof ApiError && error.status === 404) {
+    return (
+      <Shell>
+        <NotFound />
+      </Shell>
+    );
+  }
   return (
     <Shell>
       <ErrorState

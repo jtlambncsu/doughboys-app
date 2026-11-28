@@ -104,8 +104,9 @@ describe('chain page', () => {
     expect(screen.getByRole('heading', { name: 'The visit' })).toBeInTheDocument();
   });
 
-  it('shows an error for an unknown chain', async () => {
-    renderApp(chainUrl('Nope'));
-    expect(await screen.findByRole('alert')).toHaveTextContent('Not found');
+  it('shows the not-found page for a chain that does not exist', async () => {
+    renderApp('/chains/no-such-chain');
+    expect(await screen.findByText("That page doesn't exist.")).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Back to the leaderboard' })).toBeInTheDocument();
   });
 });

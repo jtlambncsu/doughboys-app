@@ -60,9 +60,9 @@ describe('episode page', () => {
     );
   });
 
-  it('shows an error for an unknown episode', async () => {
+  it('shows the not-found page for an unknown episode', async () => {
     renderApp('/episodes/nope');
-    expect(await screen.findByRole('alert')).toHaveTextContent('Not found');
+    expect(await screen.findByText("That page doesn't exist.")).toBeInTheDocument();
   });
 });
 

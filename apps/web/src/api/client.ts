@@ -13,9 +13,10 @@ import type {
 
 /**
  * Empty in development, so requests go to `/api` on the Vite server, which proxies to the
- * local API. In production this is the API Gateway URL from the CDK output.
+ * local API. In production this is the API Gateway URL from the CDK output (a trailing slash
+ * is dropped, so `https://…/` doesn't turn into `//api`).
  */
-const API_URL = import.meta.env.VITE_API_URL ?? '';
+const API_URL = (import.meta.env.VITE_API_URL ?? '').replace(/\/+$/, '');
 
 export class ApiError extends Error {
   constructor(
