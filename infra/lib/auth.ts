@@ -24,6 +24,8 @@ export interface AuthProps {
 export class Auth extends Construct {
   readonly userPool: UserPool;
   readonly client: UserPoolClient;
+  /** The app client's managed login style; LoginBranding (ADR 0015) styles it. */
+  readonly loginStyle: CfnManagedLoginBranding;
 
   constructor(scope: Construct, id: string, props: AuthProps) {
     super(scope, id);
@@ -84,11 +86,11 @@ export class Auth extends Construct {
     });
 
     // The newer managed login needs a style; use Cognito's default look.
-    const branding = new CfnManagedLoginBranding(this, 'LoginBranding', {
+    const branding = (this.loginStyle = new CfnManagedLoginBranding(this, 'LoginBranding', {
       userPoolId: this.userPool.userPoolId,
       clientId: this.client.userPoolClientId,
       useCognitoProvidedValues: true,
-    });
+    }));
     branding.node.addDependency(domain);
 
     const stack = Stack.of(this);

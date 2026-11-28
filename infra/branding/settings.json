@@ -1,0 +1,110 @@
+{
+  "categories": {
+    "global": {
+      "colorSchemeMode": "DYNAMIC",
+      "pageHeader": {
+        "enabled": false
+      },
+      "pageFooter": {
+        "enabled": false
+      }
+    },
+    "form": {
+      "displayGraphics": true
+    }
+  },
+  "components": {
+    "pageBackground": {
+      "lightMode": {
+        "color": "fbf9f5ff"
+      },
+      "darkMode": {
+        "color": "120f0cff"
+      },
+      "image": {
+        "enabled": false
+      }
+    },
+    "form": {
+      "lightMode": {
+        "backgroundColor": "ffffffff",
+        "borderColor": "e7e1d8ff"
+      },
+      "darkMode": {
+        "backgroundColor": "1c1814ff",
+        "borderColor": "3a332cff"
+      },
+      "borderRadius": 12,
+      "logo": {
+        "enabled": true,
+        "location": "CENTER",
+        "position": "TOP",
+        "formInclusion": "IN"
+      }
+    },
+    "primaryButton": {
+      "lightMode": {
+        "defaults": {
+          "backgroundColor": "bf4306ff",
+          "textColor": "ffffffff"
+        },
+        "hover": {
+          "backgroundColor": "a33905ff",
+          "textColor": "ffffffff"
+        },
+        "active": {
+          "backgroundColor": "8a3004ff",
+          "textColor": "ffffffff"
+        }
+      },
+      "darkMode": {
+        "defaults": {
+          "backgroundColor": "f28e42ff",
+          "textColor": "1a1410ff"
+        },
+        "hover": {
+          "backgroundColor": "f6a86aff",
+          "textColor": "1a1410ff"
+        },
+        "active": {
+          "backgroundColor": "e07a2cff",
+          "textColor": "1a1410ff"
+        }
+      }
+    },
+    "favicon": {
+      "enabledTypes": ["SVG"]
+    }
+  },
+  "componentClasses": {
+    "link": {
+      "lightMode": {
+        "defaults": {
+          "textColor": "bf4306ff"
+        },
+        "hover": {
+          "textColor": "8a3004ff"
+        }
+      },
+      "darkMode": {
+        "defaults": {
+          "textColor": "f28e42ff"
+        },
+        "hover": {
+          "textColor": "f6a86aff"
+        }
+      }
+    },
+    "focusState": {
+      "lightMode": {
+        "borderColor": "bf4306ff"
+      },
+      "darkMode": {
+        "borderColor": "f28e42ff"
+      }
+    },
+    "buttons": {
+      "borderRadius": 10
+    }
+  }
+}

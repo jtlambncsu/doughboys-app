@@ -118,6 +118,25 @@ describe('ApiStack', () => {
     });
   });
 
+  it('brands the sign-in page with our logo and colors, with only the access it needs', () => {
+    template.hasResourceProperties('AWS::CloudFormation::CustomResource', {
+      settings: Match.stringLikeRegexp('bf4306ff'),
+      assets: Match.stringLikeRegexp('FORM_LOGO'),
+    });
+    template.hasResourceProperties('AWS::IAM::Policy', {
+      PolicyDocument: {
+        Statement: Match.arrayWith([
+          Match.objectLike({
+            Action: [
+              'cognito-idp:DescribeManagedLoginBrandingByClient',
+              'cognito-idp:UpdateManagedLoginBranding',
+            ],
+          }),
+        ]),
+      },
+    });
+  });
+
   it('lets the API delete Cognito users, and nothing else in Cognito', () => {
     const apiPolicies = JSON.stringify(
       template.findResources('AWS::IAM::Policy', {

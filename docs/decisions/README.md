@@ -22,3 +22,4 @@ New decision? Copy [`0000-template.md`](0000-template.md) to the next number.
 | [0012](0012-ratings-in-tines.md)                    | Fan ratings in forks and tines (quarter forks)                  |
 | [0013](0013-cost-and-abuse-guardrails.md)           | Guardrails against bots and surprise bills; stats dashboard     |
 | [0014](0014-reporting-reviews.md)                   | Reporting reviews: signed-in, emailed, auto-hide at 3           |
+| [0015](0015-branded-sign-in-page.md)                | Brand Cognito's sign-in page at deploy time                     |

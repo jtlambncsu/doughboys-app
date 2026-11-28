@@ -13,6 +13,7 @@ import { LogGroup, RetentionDays } from 'aws-cdk-lib/aws-logs';
 import { StringParameter } from 'aws-cdk-lib/aws-ssm';
 import type { Construct } from 'constructs';
 import { Auth } from './auth.js';
+import { LoginBranding } from './branding.js';
 import { Ops } from './ops.js';
 
 /** Where the Anthropic API key lives in SSM Parameter Store (a SecureString, made by hand). */
@@ -221,6 +222,14 @@ export class ApiStack extends Stack {
       httpApi: api,
       autoDeploy: true,
       throttle: { rateLimit: 10, burstLimit: 20 },
+    });
+
+    new LoginBranding(this, 'LoginBranding', {
+      userPool: auth.userPool,
+      client: auth.client,
+      loginStyle: auth.loginStyle,
+      functionDefaults: shared,
+      entry: repoPath,
     });
 
     new Ops(this, 'Ops', {
